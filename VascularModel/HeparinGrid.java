@@ -152,7 +152,7 @@ class EndothelialCell extends AgentSQ2D<HeparinGrid>{
     public void initMacrophages(){
         assert G != null;
         if(G.rng.Double() < MACROPHAGE_SPAWN_CHANCE){
-            for (int i = 1; i < (int)MAX_MACROPHAGE_PER_SPAWN*(G.rng.Double()); i++) {
+            for (int i = 1; i < MAX_MACROPHAGE_PER_SPAWN*(G.rng.Double()); i++) {
                 G.NewAgentPT((HeparinGrid.x)*Math.random(), 0).Init(MACROPHAGE, false, 0); // make a new macrophage there
             }
         }
@@ -404,9 +404,9 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
      */
     // BATCH RUNS
     public final static boolean BATCH_RUN = true;
-    public final static boolean EXPORT_DATA = false;
+    public final static boolean EXPORT_DATA = true;
     public final static int TRIALS = 5;
-    public final static double[] HEPARIN_PERCENTAGES = new double[]{0.01, 0.05, 0.10, 0.2};
+    public final static double[] HEPARIN_PERCENTAGES = new double[]{0.01, 0.05, 0.1, 0.2};
 
     // ENDOTHELIAL CELL PARAMETERS
     public final static int SIGHT_RADIUS = 3; // radius for VEGF sight
@@ -447,7 +447,6 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
     public static ArrayList<Double> arrivedTime = new ArrayList<>(); // the time of vessels that have arrived
     public static ArrayList<Integer> arrivedLengths = new ArrayList<>(); // the length of vessels that have arrived
     public static int population;
-
 
 
     Rand rng = new Rand();
@@ -636,6 +635,13 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
         Files.writeString(fileName, dataset);
     }
 
+    /**
+     * Exports data to the Batch run file inside EndoData file during batch runs
+     * @param datafile the name of the batch run file
+     * @param trial_number trial number
+     * @param heparinPercentage percentage heparin (to be included in the file name)
+     * @throws IOException if the file cannot be found
+     */
     public void BatchExportData(Path datafile, int trial_number, double heparinPercentage) throws IOException {
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         String timestamp_string = timestamp.toString().replace(" ","_").replace(".", "-").replace(":", "-");
@@ -693,13 +699,21 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
         Files.writeString(fileName, dataset);
     }
 
+    /**
+     * Clears data from arrivedTime and arrivedLengths, just a precaution
+     */
     public void ClearData() {
         arrivedTime.clear();
         arrivedLengths.clear();
 
     }
 
-    public Path MakeFolder(){
+    /**
+     * makes the batch run folder to organize the data from a single batch run
+     * @return the pathname of the created batch folder
+     * @throws IOException if the folder cannot be made
+     */
+    public Path MakeBatchRunFolder() throws IOException {
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         String timestamp_string = timestamp.toString().replace(" ","_").replace(".", "-").replace(":", "-");
         StringBuilder HeparinPercentagesString = new StringBuilder();
@@ -710,9 +724,11 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
                 HeparinPercentagesString.append(HEPARIN_PERCENTAGES[i]*100);
             }
         }
-        Path fileName= Path.of("VascularModel\\EndoData\\" + "Batch ["+ HeparinPercentagesString + "]% " + timestamp_string + ".csv");
+        Path fileName= Path.of("VascularModel\\EndoData\\" + "Batch ["+ HeparinPercentagesString + "]% " + timestamp_string);
         File file = new File(String.valueOf(fileName));
-        file.mkdirs();
+        if (!file.mkdir()) {
+            throw new IOException("Batch Run folder not made");
+        }
 
         return fileName;
     }
@@ -724,6 +740,15 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
         GridWindow VEGFWin = new GridWindow("VEGF Diffusion", x, y, SCALE_FACTOR); // window for diffusion
 
         HeparinGrid model = new HeparinGrid(x, y); // instantiate agent grid
+
+        Path fileName= Path.of("VascularModel\\EndoData");
+        File EndoDatafile = new File(String.valueOf(fileName));
+
+        if (EXPORT_DATA && !EndoDatafile.exists()) {
+            if (!EndoDatafile.mkdir()) {
+                throw new IOException("EndoData folder not made");
+            }
+        }
 
         if (!BATCH_RUN){
 
@@ -750,7 +775,7 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
         } else {
             Path datafile;
             if (EXPORT_DATA){
-                datafile = model.MakeFolder();
+                datafile = model.MakeBatchRunFolder();
             }
             for (double heparinPercentage : HEPARIN_PERCENTAGES) {
                 for (int trial = 0; trial < TRIALS; trial++) {

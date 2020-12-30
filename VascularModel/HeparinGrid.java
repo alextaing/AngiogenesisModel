@@ -807,8 +807,3 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
     }
 }
 
-
-
-
-
-

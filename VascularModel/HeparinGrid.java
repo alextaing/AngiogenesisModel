@@ -32,7 +32,7 @@ import java.util.ArrayList;
 /// 18) fix lag: data leak somewhere?
 
 /// THINGS THAT CAN BE VARIED FOR EXPERIMENTATION:
-/// Ratio of MAP to Heparin MAP (HEP_TO_MAP_RATIO)
+/// Ratio of MAP to Heparin MAP (HEPARIN_PERCENTAGES)
 /// Radius of VEGF sensing (SIGHT_RADIUS)
 /// Radius of MAP (MAP_RADIUS)
 /// MAP spacing (MAP_SPACING)
@@ -403,10 +403,10 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
      * PARAMETERS!
      */
     // BATCH RUNS
-    public final static boolean BATCH_RUN = true;
-    public final static boolean EXPORT_DATA = true;
+    public final static boolean BATCH_RUN = false;
+    public final static boolean EXPORT_DATA = false;
     public final static int TRIALS = 5;
-    public final static double[] HEPARIN_PERCENTAGES = new double[]{0.01, 0.05, 0.1, 0.2};
+    public final static double[] HEPARIN_PERCENTAGES = new double[]{0.1, 0.05, 0.1, 0.2};
 
     // ENDOTHELIAL CELL PARAMETERS
     public final static int SIGHT_RADIUS = 3; // radius for VEGF sight
@@ -425,12 +425,11 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
     public final static int MAP_RADIUS = 3; // radius of MAP particle
     public final static int MAP_SPACING = 6; // spacing radius from center of MAP particle
     public final static int MAP_PARTICLES = 800; // number of MAP particles
-    public final static double HEP_TO_MAP_RATIO = .15; // percent of MAP that are Heparin MAP
     public final static double DIFFUSION_COEFFICIENT = 0.07; // diffusion coefficient
 
     // MAIN METHOD PARAMETERS
     public final static int x = 200; // x dimension of the window
-    public final static int y = 200; // y dimension of the window 312
+    public final static int y = 312; // y dimension of the window 312
     public final static int SCALE_FACTOR = 2;
     public final static int TICK_PAUSE = 1;
     public final static int TIMESTEPS = 2000; // how long will the simulation run?
@@ -756,7 +755,7 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
             model.ClearData();
 
             model.initVascular(model, START_VASCULAR_CHANCE);
-            model.initMAPParticles(model, HEP_TO_MAP_RATIO);
+            model.initMAPParticles(model, HEPARIN_PERCENTAGES[0]);
 
             for (int i = 0; i < TIMESTEPS; i++){
                 // pause
@@ -806,9 +805,4 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
         }
     }
 }
-
-
-
-
-
 

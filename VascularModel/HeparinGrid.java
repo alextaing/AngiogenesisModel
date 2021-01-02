@@ -558,6 +558,28 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
     }
 
     /**
+     * Initializes the vessels at both side of the wound
+     * @param model the model to draw the vessels in
+     * @param startVascularChance ratio of head to body vessels in wound edge
+     */
+    public void initVascularTwoEdges(@NotNull HeparinGrid model, double startVascularChance) {
+        for (int i = 0; i < model.Xdim(); i++) {
+            if (Math.random() < startVascularChance){
+                model.NewAgentSQ(i,0).Init(EndothelialCell.HEAD_CELL, false, 0);
+            } else {
+                model.NewAgentSQ(i, 0).Init(EndothelialCell.BODY_CELL, false, 0);
+            }
+        }
+        for (int i = 0; i < model.Xdim(); i++) {
+            if (Math.random() < startVascularChance){
+                model.NewAgentSQ(i,model.yDim-1).Init(EndothelialCell.HEAD_CELL, false, 0);
+            } else {
+                model.NewAgentSQ(i, model.yDim-1).Init(EndothelialCell.BODY_CELL, false, 0);
+            }
+        }
+    }
+
+    /**
      * Initializes MAP particles as point particles
      * @param model model to draw the particles in
      */

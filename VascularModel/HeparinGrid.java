@@ -72,6 +72,7 @@ class EndothelialCell extends AgentSQ2D<HeparinGrid>{
     int color;
     int type;
     int length = 0;
+    boolean MACROPHAGE_UP;
     boolean arrived = false; // true if the vessel has reached the wound edge
     public static boolean start_endo = false; // when the endo cells begin to grow after macrophage start
 
@@ -153,7 +154,12 @@ class EndothelialCell extends AgentSQ2D<HeparinGrid>{
         assert G != null;
         if(G.rng.Double() < MACROPHAGE_SPAWN_CHANCE){
             for (int i = 1; i < MAX_MACROPHAGE_PER_SPAWN*(G.rng.Double()); i++) {
-                G.NewAgentPT((HeparinGrid.x)*Math.random(), 0).Init(MACROPHAGE, false, 0); // make a new macrophage there
+                G.NewAgentPT((HeparinGrid.x)*Math.random(), 1).Init(MACROPHAGE, false, 0, true); // make a new macrophage there
+            }
+        }
+        if(G.rng.Double() < MACROPHAGE_SPAWN_CHANCE){
+            for (int i = 1; i < MAX_MACROPHAGE_PER_SPAWN*(G.rng.Double()); i++) {
+                G.NewAgentPT((HeparinGrid.x)*Math.random(), HeparinGrid.y-2).Init(MACROPHAGE, false, 0, false); // make a new macrophage there
             }
         }
     }
@@ -168,6 +174,31 @@ class EndothelialCell extends AgentSQ2D<HeparinGrid>{
         this.arrived = arrived;
         this.type = type;
         this.length = length;
+
+        if (type == HEAD_CELL) {
+            this.color = HEAD_CELL_COLOR; // Growing endothelial cells
+        } else if (type == BODY_CELL){
+            this.color = BODY_CELL_COLOR;
+        } else if (type == MAP_PARTICLE){
+            this.color = MAP_PARTICLE_COLOR; // normal MAP
+        } else if (type == HEPARIN_MAP) { // Inactive Endothelial cells
+            this.color = HEPARIN_MAP_COLOR; // Heparin MAP
+        } else if (type == MACROPHAGE) {
+            this.color = MACROPHAGE_COLOR;
+        }
+    }
+
+    /**
+     Initializes a cell with color type, and macrophage direction
+     * @param type: type of cell/particle
+     * @param arrived whether the cell has arrived at the target or not (to be inherited from parent cell)
+     */
+    public void Init(int type, boolean arrived, int length, boolean MACROPHAGE_UP){
+
+        this.arrived = arrived;
+        this.type = type;
+        this.length = length;
+        this.MACROPHAGE_UP = MACROPHAGE_UP;
 
         if (type == HEAD_CELL) {
             this.color = HEAD_CELL_COLOR; // Growing endothelial cells
@@ -223,7 +254,7 @@ class EndothelialCell extends AgentSQ2D<HeparinGrid>{
     public void checkIfArrived(){
         if (!arrived){
             if (type == HEAD_CELL){
-                if (Ysq() == HeparinGrid.y-1){
+                if (Ysq() == HeparinGrid.y/2){
                     this.arrived = true;
                     assert G != null;
                     double time = (double)G.GetTick()/6;
@@ -297,19 +328,23 @@ class EndothelialCell extends AgentSQ2D<HeparinGrid>{
         if (type == MACROPHAGE) {
             assert G != null;
 
-            if ((0 > Xpt()) ||(Xpt() > HeparinGrid.x-1)) {
+            if ((1 > Xpt()) ||(Xpt() > HeparinGrid.x-1)) {
                 Dispose();
                 return;
             }
-            if ((0 > Ypt()) ||(Ypt() > HeparinGrid.y-1)) {
+            if ((1 > Ypt()) ||(Ypt() > HeparinGrid.y-1)) {
                 Dispose();
                 return;
             }
 
             if (type == MACROPHAGE){
                 if (G.rng.Double() < MACROPHAGE_FORWARD_TENDENCY){
-                    MoveSQ(G.I((Xpt()),(Ypt()+1)));
-                    return;
+                    if (MACROPHAGE_UP){
+                        MoveSQ(G.I((Xpt()),(Ypt()+1)));
+                        return;
+                    } else {
+                        MoveSQ(G.I((Xpt()),(Ypt()-1)));
+                    }
                 }
                 int options = MapHood(G.moveHood);
                 MoveSQ(G.moveHood[(int)(options*Math.random())]);
@@ -335,7 +370,7 @@ class EndothelialCell extends AgentSQ2D<HeparinGrid>{
      * @param splitProb probability that the vessel will split
      */
     public void EndothelialGrowth(double divProb, double splitProb){
-        if (type == HEAD_CELL && start_endo && !arrived) {
+        if (type == HEAD_CELL && start_endo) {
             assert G != null;
             if (G.rng.Double() < divProb){ // if cell chances to divide
                 int TargetLocation = HighestConcentrationVEGF();
@@ -518,6 +553,28 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
                 model.NewAgentSQ(i,0).Init(EndothelialCell.HEAD_CELL, false, 0);
             } else {
                 model.NewAgentSQ(i, 0).Init(EndothelialCell.BODY_CELL, false, 0);
+            }
+        }
+    }
+
+    /**
+     * Initializes the vessels at both side of the wound
+     * @param model the model to draw the vessels in
+     * @param startVascularChance ratio of head to body vessels in wound edge
+     */
+    public void initVascularTwoEdges(@NotNull HeparinGrid model, double startVascularChance) {
+        for (int i = 0; i < model.Xdim(); i++) {
+            if (Math.random() < startVascularChance){
+                model.NewAgentSQ(i,0).Init(EndothelialCell.HEAD_CELL, false, 0);
+            } else {
+                model.NewAgentSQ(i, 0).Init(EndothelialCell.BODY_CELL, false, 0);
+            }
+        }
+        for (int i = 0; i < model.Xdim(); i++) {
+            if (Math.random() < startVascularChance){
+                model.NewAgentSQ(i,model.yDim-1).Init(EndothelialCell.HEAD_CELL, false, 0);
+            } else {
+                model.NewAgentSQ(i, model.yDim-1).Init(EndothelialCell.BODY_CELL, false, 0);
             }
         }
     }
@@ -754,7 +811,7 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
             // initialize
             model.ClearData();
 
-            model.initVascular(model, START_VASCULAR_CHANCE);
+            model.initVascularTwoEdges(model, START_VASCULAR_CHANCE);
             model.initMAPParticles(model, HEPARIN_PERCENTAGES[0]);
 
             for (int i = 0; i < TIMESTEPS; i++){

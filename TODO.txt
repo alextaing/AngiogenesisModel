@@ -1,3 +1,9 @@
 Turn off heparin islands
 background gradient
 anastomosis
+
+
+IDEAS FOR FUTURE:
+circular wound: how know which direction to move towards center of wound? macrophages?
+- make probability that move vertically/horizontally as sides of a right triangle
+e.g. if 25% move up, 25% move right, and 50% random, then it will overall move 45 deg. up/right with some random

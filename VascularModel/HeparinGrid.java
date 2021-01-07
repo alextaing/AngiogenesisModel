@@ -72,7 +72,8 @@ class EndothelialCell extends AgentSQ2D<HeparinGrid>{
     int color;
     int type;
     int length = 0;
-    boolean MACROPHAGE_UP;
+    boolean macrophageBottom;
+    boolean vesselBottom;
     boolean arrived = false; // true if the vessel has reached the wound edge
     public static boolean start_endo = false; // when the endo cells begin to grow after macrophage start
 
@@ -154,12 +155,12 @@ class EndothelialCell extends AgentSQ2D<HeparinGrid>{
         assert G != null;
         if(G.rng.Double() < MACROPHAGE_SPAWN_CHANCE){
             for (int i = 1; i < MAX_MACROPHAGE_PER_SPAWN*(G.rng.Double()); i++) {
-                G.NewAgentPT((HeparinGrid.x)*Math.random(), 1).Init(MACROPHAGE, false, 0, true); // make a new macrophage there
+                G.NewAgentPT((HeparinGrid.x)*Math.random(), 1).InitMacrophage(MACROPHAGE, false, 0, true); // make a new macrophage there
             }
         }
         if(G.rng.Double() < MACROPHAGE_SPAWN_CHANCE){
             for (int i = 1; i < MAX_MACROPHAGE_PER_SPAWN*(G.rng.Double()); i++) {
-                G.NewAgentPT((HeparinGrid.x)*Math.random(), HeparinGrid.y-2).Init(MACROPHAGE, false, 0, false); // make a new macrophage there
+                G.NewAgentPT((HeparinGrid.x)*Math.random(), HeparinGrid.y-2).InitMacrophage(MACROPHAGE, false, 0, false); // make a new macrophage there
             }
         }
     }
@@ -189,16 +190,41 @@ class EndothelialCell extends AgentSQ2D<HeparinGrid>{
     }
 
     /**
-     Initializes a cell with color type, and macrophage direction
+     Initializes a cell with color and type
      * @param type: type of cell/particle
      * @param arrived whether the cell has arrived at the target or not (to be inherited from parent cell)
      */
-    public void Init(int type, boolean arrived, int length, boolean MACROPHAGE_UP){
+    public void InitVascular(int type, boolean arrived, int length, boolean vesselBottom){
 
         this.arrived = arrived;
         this.type = type;
         this.length = length;
-        this.MACROPHAGE_UP = MACROPHAGE_UP;
+        this.vesselBottom = vesselBottom;
+
+        if (type == HEAD_CELL) {
+            this.color = HEAD_CELL_COLOR; // Growing endothelial cells
+        } else if (type == BODY_CELL){
+            this.color = BODY_CELL_COLOR;
+        } else if (type == MAP_PARTICLE){
+            this.color = MAP_PARTICLE_COLOR; // normal MAP
+        } else if (type == HEPARIN_MAP) { // Inactive Endothelial cells
+            this.color = HEPARIN_MAP_COLOR; // Heparin MAP
+        } else if (type == MACROPHAGE) {
+            this.color = MACROPHAGE_COLOR;
+        }
+    }
+
+    /**
+     Initializes a cell with color type, and macrophage direction
+     * @param type: type of cell/particle
+     * @param arrived whether the cell has arrived at the target or not (to be inherited from parent cell)
+     */
+    public void InitMacrophage(int type, boolean arrived, int length, boolean macrophageBottom){
+
+        this.arrived = arrived;
+        this.type = type;
+        this.length = length;
+        this.macrophageBottom = macrophageBottom;
 
         if (type == HEAD_CELL) {
             this.color = HEAD_CELL_COLOR; // Growing endothelial cells
@@ -232,8 +258,8 @@ class EndothelialCell extends AgentSQ2D<HeparinGrid>{
             }
         }
         int location = openAreas.get((int)(Math.random()*openAreas.size()));
-        G.NewAgentSQ(location).Init(HEAD_CELL, this.arrived, this.length+1);
-        Init(BODY_CELL, this.arrived, this.length);
+        G.NewAgentSQ(location).InitVascular(HEAD_CELL, this.arrived, this.length+1, this.vesselBottom);
+        InitVascular(BODY_CELL, this.arrived, this.length, this.vesselBottom);
     }
 
     /**
@@ -243,8 +269,8 @@ class EndothelialCell extends AgentSQ2D<HeparinGrid>{
         assert G != null;
         int options = MapEmptyHood(G.divHood);
         if (options >= 1) {
-            G.NewAgentSQ(G.divHood[G.rng.Int(options)]).Init(HEAD_CELL, this.arrived, this.length+1);
-            Init(BODY_CELL, this.arrived, this.length);
+            G.NewAgentSQ(G.divHood[G.rng.Int(options)]).InitVascular(HEAD_CELL, this.arrived, this.length+1, this.vesselBottom);
+            InitVascular(BODY_CELL, this.arrived, this.length, this.vesselBottom);
         }
     }
 
@@ -315,7 +341,7 @@ class EndothelialCell extends AgentSQ2D<HeparinGrid>{
             if (G.rng.Double() < BODY_CELL_BRANCH_PROB) {
                 int options2 = MapEmptyHood(G.divHood);
                 if (options2 > 0) {
-                    G.NewAgentSQ(G.divHood[G.rng.Int(options2)]).Init(HEAD_CELL, this.arrived, this.length+1);
+                    G.NewAgentSQ(G.divHood[G.rng.Int(options2)]).InitVascular(HEAD_CELL, this.arrived, this.length+1, this.vesselBottom);
                 }
             }
         }
@@ -339,7 +365,7 @@ class EndothelialCell extends AgentSQ2D<HeparinGrid>{
 
             if (type == MACROPHAGE){
                 if (G.rng.Double() < MACROPHAGE_FORWARD_TENDENCY){
-                    if (MACROPHAGE_UP){
+                    if (macrophageBottom){
                         MoveSQ(G.I((Xpt()),(Ypt()+1)));
                         return;
                     } else {
@@ -377,8 +403,8 @@ class EndothelialCell extends AgentSQ2D<HeparinGrid>{
                 if (TargetLocation != 0){
                     int cellDivLocation = HoodClosestToVEGF(TargetLocation); // take the int position and find the closest neighborhood division spot
                     if (G.PopAt(cellDivLocation) < 5){ // if the area is not too crowded
-                        G.NewAgentSQ(cellDivLocation).Init(HEAD_CELL, this.arrived, this.length+1); // make a new cell there
-                        Init(BODY_CELL, this.arrived, this.length);
+                        G.NewAgentSQ(cellDivLocation).InitVascular(HEAD_CELL, this.arrived, this.length+1, this.vesselBottom); // make a new cell there
+                        InitVascular(BODY_CELL, this.arrived, this.length, this.vesselBottom);
                     }
                 } else { // supposed to be random movement if there is no VEGF nearby
                     randomDivideNotOverlap();
@@ -439,9 +465,9 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
      */
     // BATCH RUNS
     public final static boolean BATCH_RUN = false;
-    public final static boolean EXPORT_DATA = false;
+    public final static boolean EXPORT_DATA = true;
     public final static int TRIALS = 5;
-    public final static double[] HEPARIN_PERCENTAGES = new double[]{0.1, 0.05, 0.1, 0.2};
+    public final static double[] HEPARIN_PERCENTAGES = new double[]{0.01, 0.05, 0.1, 0.2};
 
     // ENDOTHELIAL CELL PARAMETERS
     public final static int SIGHT_RADIUS = 3; // radius for VEGF sight
@@ -550,9 +576,9 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
     public void initVascular(@NotNull HeparinGrid model, double startVascularChance) {
         for (int i = 0; i < model.Xdim(); i++) {
             if (Math.random() < startVascularChance){
-                model.NewAgentSQ(i,0).Init(EndothelialCell.HEAD_CELL, false, 0);
+                model.NewAgentSQ(i,0).InitVascular(EndothelialCell.HEAD_CELL, false, 0, true);
             } else {
-                model.NewAgentSQ(i, 0).Init(EndothelialCell.BODY_CELL, false, 0);
+                model.NewAgentSQ(i, 0).InitVascular(EndothelialCell.BODY_CELL, false, 0, true);
             }
         }
     }
@@ -565,16 +591,16 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
     public void initVascularTwoEdges(@NotNull HeparinGrid model, double startVascularChance) {
         for (int i = 0; i < model.Xdim(); i++) {
             if (Math.random() < startVascularChance){
-                model.NewAgentSQ(i,0).Init(EndothelialCell.HEAD_CELL, false, 0);
+                model.NewAgentSQ(i,0).InitVascular(EndothelialCell.HEAD_CELL, false, 0, true);
             } else {
-                model.NewAgentSQ(i, 0).Init(EndothelialCell.BODY_CELL, false, 0);
+                model.NewAgentSQ(i, 0).InitVascular(EndothelialCell.BODY_CELL, false, 0, true);
             }
         }
         for (int i = 0; i < model.Xdim(); i++) {
             if (Math.random() < startVascularChance){
-                model.NewAgentSQ(i,model.yDim-1).Init(EndothelialCell.HEAD_CELL, false, 0);
+                model.NewAgentSQ(i,model.yDim-1).InitVascular(EndothelialCell.HEAD_CELL, false, 0, false);
             } else {
-                model.NewAgentSQ(i, model.yDim-1).Init(EndothelialCell.BODY_CELL, false, 0);
+                model.NewAgentSQ(i, model.yDim-1).InitVascular(EndothelialCell.BODY_CELL, false, 0, false);
             }
         }
     }

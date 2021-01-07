@@ -464,10 +464,10 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
      * PARAMETERS!
      */
     // BATCH RUNS
-    public final static boolean BATCH_RUN = false;
+    public final static boolean BATCH_RUN = true;
     public final static boolean EXPORT_DATA = true;
-    public final static int TRIALS = 5;
-    public final static double[] HEPARIN_PERCENTAGES = new double[]{0.01, 0.05, 0.1, 0.2};
+    public final static int TRIALS = 2;
+    public final static double[] HEPARIN_PERCENTAGES = new double[]{0.01, 0.05};
 
     // ENDOTHELIAL CELL PARAMETERS
     public final static int SIGHT_RADIUS = 3; // radius for VEGF sight
@@ -659,13 +659,10 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
     }
 
     /**
-     * Exports data to EndoData file: arrival time, endothelial cells coordinates, MAP and HepMAP coordinates
-     * @throws IOException error in data export
+     * Collects the data for export
+     * @return the CSV to export
      */
-    public void ExportData() throws IOException {
-        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-        String timestamp_string = timestamp.toString().replace(" ","_").replace(".", "-").replace(":", "-");
-        Path fileName= Path.of("VascularModel\\EndoData\\" + timestamp_string + ".csv");
+    public StringBuilder CollectData(){
         StringBuilder dataset = new StringBuilder();
 
         // endothelial cell, MAP Particle, and Heparin MAP Data
@@ -713,7 +710,18 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
             length_data.append(", ").append(length);
         }
 
-        dataset.append(time_data).append("\n").append(length_data).append("\n").append(endothelial_cell_data);
+        return dataset.append(time_data).append("\n").append(length_data).append("\n").append(endothelial_cell_data);
+    }
+
+    /**
+     * Exports data to EndoData file: arrival time, endothelial cells coordinates, MAP and HepMAP coordinates
+     * @throws IOException error in data export
+     */
+    public void ExportData() throws IOException {
+        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+        String timestamp_string = timestamp.toString().replace(" ","_").replace(".", "-").replace(":", "-");
+        Path fileName= Path.of("VascularModel\\EndoData\\" + timestamp_string + ".csv");
+        StringBuilder dataset = CollectData();
         Files.writeString(fileName, dataset);
     }
 
@@ -724,60 +732,13 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
      * @param heparinPercentage percentage heparin (to be included in the file name)
      * @throws IOException if the file cannot be found
      */
-    public void BatchExportData(Path datafile, int trial_number, double heparinPercentage) throws IOException {
+    public void ExportData(Path datafile, int trial_number, double heparinPercentage) throws IOException {
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         String timestamp_string = timestamp.toString().replace(" ","_").replace(".", "-").replace(":", "-");
         heparinPercentage = (heparinPercentage*100);
         trial_number = trial_number+1;
         Path fileName= Path.of(datafile + "\\"+ heparinPercentage +"% "+" Trial " + trial_number + ", " + timestamp_string + ".csv");
-        StringBuilder dataset = new StringBuilder();
-
-        // endothelial cell, MAP Particle, and Heparin MAP Data
-        StringBuilder endothelial_cell_data = new StringBuilder();
-
-        for (int x_coord = 0; x_coord < x; x_coord++) {
-            for (int y_coord = 0; y_coord < y; y_coord++) {
-                Iterable<EndothelialCell> agents = IterAgents(x_coord, y_coord);
-                for (EndothelialCell agent : agents) {
-                    if (agent.type == HEAD_CELL || agent.type == BODY_CELL){
-                        if (endothelial_cell_data.length() == 0){
-                            endothelial_cell_data.append("Vascular Coordinates (x-y)");
-                        }
-                        if (agent.type == HEAD_CELL && !agent.arrived){
-                            arrivedLengths.add(agent.length);
-                            arrivedTime.add(-1.0);
-                        }
-                        endothelial_cell_data.append(", ").append(agent.Xsq()).append("-").append(agent.Ysq());
-                    }
-                }
-            }
-        }
-
-        // time data
-        StringBuilder time_data= new StringBuilder();
-
-        for (Double Double : arrivedTime) {
-            if (time_data.length() == 0){
-                time_data.append("Arrival Time (h)");
-            }
-            if (Double == -1) {
-                time_data.append(", N/A");
-            } else {
-                time_data.append(", ").append(Double);
-            }
-        }
-
-        // length data
-        StringBuilder length_data= new StringBuilder();
-
-        for (Integer length : arrivedLengths) {
-            if (length_data.length() == 0){
-                length_data.append("Length (microns)");
-            }
-            length_data.append(", ").append(length);
-        }
-
-        dataset.append(time_data).append("\n").append(length_data).append("\n").append(endothelial_cell_data);
+        StringBuilder dataset = CollectData();
         Files.writeString(fileName, dataset);
     }
 
@@ -867,7 +828,7 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
                     model.ResetTick();
                     EndothelialCell.start_endo = false;
                     model.VEGF = new PDEGrid2D(x, y);
-                    model.initVascular(model, START_VASCULAR_CHANCE);
+                    model.initVascularTwoEdges(model, START_VASCULAR_CHANCE);
                     model.initMAPParticles(model, heparinPercentage);
 
                     for (int i = 0; i < TIMESTEPS; i++){
@@ -881,7 +842,7 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
                         model.DrawModel(gridWin); // draw the agent window
                     }
                     if (EXPORT_DATA){
-                        model.BatchExportData(datafile ,trial, heparinPercentage);
+                        model.ExportData(datafile ,trial, heparinPercentage);
                     }
                 }
             }

@@ -16,6 +16,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.invoke.StringConcatFactory;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Timestamp;
@@ -284,10 +285,10 @@ class EndothelialCell extends AgentSQ2D<HeparinGrid>{
                     this.arrived = true;
                     assert G != null;
                     double time = (double)G.GetTick()/6;
-                    int length = this.length*16;
+                    int arrivedLength = this.length*16;
                     HeparinGrid.arrivedTime.add(time);
-                    HeparinGrid.arrivedLengths.add(length);
-                    System.out.println(HeparinGrid.arrivedTime.size()+ ") " + time + " hours, " + length + " microns");
+                    HeparinGrid.arrivedLengths.add(arrivedLength);
+                    System.out.println(HeparinGrid.arrivedTime.size()+ ") " + time + " hours, " + arrivedLength + " microns");
                 }
             }
         }
@@ -397,6 +398,19 @@ class EndothelialCell extends AgentSQ2D<HeparinGrid>{
      */
     public void EndothelialGrowth(double divProb, double splitProb){
         if (type == HEAD_CELL && start_endo) {
+
+            // Check anastomosis
+//            int vesselsAtLocation = 0;
+//            assert G != null;
+//            for (EndothelialCell cell : G.IterAgents(Isq())) {
+//                if (cell.type == HEAD_CELL || cell.type == BODY_CELL){
+//                    vesselsAtLocation++;
+//                }
+//            }
+//            if (vesselsAtLocation >= 2){
+//                HeparinGrid.anastomoses++;
+//            }
+
             assert G != null;
             if (G.rng.Double() < divProb){ // if cell chances to divide
                 int TargetLocation = HighestConcentrationVEGF();
@@ -464,10 +478,10 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
      * PARAMETERS!
      */
     // BATCH RUNS
-    public final static boolean BATCH_RUN = true;
+    public final static boolean BATCH_RUN = false;
     public final static boolean EXPORT_DATA = true;
     public final static int TRIALS = 2;
-    public final static double[] HEPARIN_PERCENTAGES = new double[]{0.01, 0.05};
+    public final static double[] HEPARIN_PERCENTAGES = new double[]{0.1, 0.05};
 
     // ENDOTHELIAL CELL PARAMETERS
     public final static int SIGHT_RADIUS = 3; // radius for VEGF sight
@@ -505,7 +519,10 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
     public static int MACROPHAGE = EndothelialCell.MACROPHAGE;
 
     public static ArrayList<Double> arrivedTime = new ArrayList<>(); // the time of vessels that have arrived
-    public static ArrayList<Integer> arrivedLengths = new ArrayList<>(); // the length of vessels that have arrived
+    public static ArrayList<Integer> arrivedLengths = new ArrayList<>(); // the length of vessels upon arrival
+    public static ArrayList<Integer> finalLengths = new ArrayList<>(); // the length of vessels at end of run
+    public static ArrayList<Integer> invasionDepth = new ArrayList<>(); // vessel invasion depth
+//    public static int anastomoses;
     public static int population;
 
 
@@ -668,21 +685,21 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
         // endothelial cell, MAP Particle, and Heparin MAP Data
         StringBuilder endothelial_cell_data = new StringBuilder();
 
+        // TEST
+        int testanasto = 0;
+
         for (int x_coord = 0; x_coord < x; x_coord++) {
             for (int y_coord = 0; y_coord < y; y_coord++) {
                 Iterable<EndothelialCell> agents = IterAgents(x_coord, y_coord);
                 for (EndothelialCell agent : agents) {
                     if (agent.type == HEAD_CELL || agent.type == BODY_CELL){
                         if (endothelial_cell_data.length() == 0){
-                            endothelial_cell_data.append("Vascular Coordinates (x-y)");
-                        }
-                        if (agent.type == HEAD_CELL && !agent.arrived){
-                            arrivedLengths.add(agent.length);
-                            arrivedTime.add(-1.0);
+                            endothelial_cell_data.append("Vessel Coordinates (x-y)");
                         }
                         endothelial_cell_data.append(", ").append(agent.Xsq()).append("-").append(agent.Ysq());
                     }
                 }
+
             }
         }
 
@@ -700,17 +717,67 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
             }
         }
 
-        // length data
-        StringBuilder length_data= new StringBuilder();
+        // arrivalLength data
+        StringBuilder arrivalLength_data= new StringBuilder();
 
         for (Integer length : arrivedLengths) {
-            if (length_data.length() == 0){
-                length_data.append("Length (microns)");
+            if (arrivalLength_data.length() == 0){
+                arrivalLength_data.append("Length at arrival (microns)");
             }
-            length_data.append(", ").append(length);
+            arrivalLength_data.append(", ").append(length);
         }
 
-        return dataset.append(time_data).append("\n").append(length_data).append("\n").append(endothelial_cell_data);
+        // End length and invasion depth data
+        StringBuilder finalLength_data= new StringBuilder();
+        StringBuilder invasionDepth_data= new StringBuilder();
+
+        for (EndothelialCell cell : IterAgentsRect(0,0,x,y)){
+            if (cell.type == HEAD_CELL) {
+                int invDepth;
+                if (cell.vesselBottom){
+                    invDepth = cell.Ysq()*16;
+                } else{
+                    invDepth = (y-cell.Ysq())*16;
+                }
+
+                if (invasionDepth_data.length() == 0){
+                    invasionDepth_data.append("Invasion depth (microns)");
+                }
+                invasionDepth.add(invDepth);
+                invasionDepth_data.append(", ").append(invDepth);
+
+                int finalLength = cell.length*16;
+                if (finalLength_data.length() == 0){
+                    finalLength_data.append("Final Length (microns)");
+                }
+                finalLengths.add(finalLength);
+                finalLength_data.append(", ").append(finalLength);
+            }
+        }
+
+        // anastamoses data
+        int anastomoses = 0;
+
+        for (int x_coord = 0; x_coord < x; x_coord++) {
+            for (int y_coord = 0; y_coord < y; y_coord++) {
+                int vesselCount = 0;
+                Iterable<EndothelialCell> cells = IterAgents(x_coord, y_coord);
+                for (EndothelialCell cell: cells) {
+                    if (cell.type == HEAD_CELL || cell.type == BODY_CELL){
+                        vesselCount++;
+                    }
+                }
+                if (vesselCount > 1){
+                    anastomoses++;
+                }
+            }
+        }
+
+        StringBuilder anastomosesTotal = new StringBuilder();
+        anastomosesTotal.append("Total Anastomoses, ").append(anastomoses);
+
+
+        return dataset.append(time_data).append("\n").append(arrivalLength_data).append("\n").append(invasionDepth_data).append("\n").append(finalLength_data).append("\n").append(endothelial_cell_data).append("\n").append(anastomosesTotal);
     }
 
     /**
@@ -748,7 +815,9 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
     public void ClearData() {
         arrivedTime.clear();
         arrivedLengths.clear();
-
+        finalLengths.clear();
+        invasionDepth.clear();
+//        anastomoses = 0;
     }
 
     /**

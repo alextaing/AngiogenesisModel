@@ -772,12 +772,7 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
                 }
             }
         }
-
-        StringBuilder anastomosesTotal = new StringBuilder();
-        anastomosesTotal.append("Total Anastomoses, ").append(anastomoses);
-
-
-        return dataset.append(time_data).append("\n").append(arrivalLength_data).append("\n").append(invasionDepth_data).append("\n").append(finalLength_data).append("\n").append(endothelial_cell_data).append("\n").append(anastomosesTotal);
+        return dataset.append(time_data).append("\n").append(arrivalLength_data).append("\n").append(invasionDepth_data).append("\n").append(finalLength_data).append("\n").append(endothelial_cell_data).append("\n").append("Total Anastomoses, ").append(anastomoses);
     }
 
     /**

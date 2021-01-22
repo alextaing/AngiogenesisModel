@@ -9,3 +9,7 @@ HalColorSchemes.jar
 
 # .java
 System3D.java
+
+# iml
+AngiogenesisModel.iml
+*.iml

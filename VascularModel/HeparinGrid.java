@@ -12,7 +12,6 @@ import HAL.GridsAndAgents.PDEGrid2D;
 import HAL.Gui.GridWindow;
 import HAL.Rand;
 import HAL.Util;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -590,7 +589,7 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
      * @param model the model to draw the vessels in
      * @param startVascularChance ratio of head to body vessels in wound edge
      */
-    public void initVascular(@NotNull HeparinGrid model, double startVascularChance) {
+    public void initVascular(HeparinGrid model, double startVascularChance) {
         for (int i = 0; i < model.Xdim(); i++) {
             if (Math.random() < startVascularChance){
                 model.NewAgentSQ(i,0).InitVascular(EndothelialCell.HEAD_CELL, false, 0, true);
@@ -605,7 +604,7 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
      * @param model the model to draw the vessels in
      * @param startVascularChance ratio of head to body vessels in wound edge
      */
-    public void initVascularTwoEdges(@NotNull HeparinGrid model, double startVascularChance) {
+    public void initVascularTwoEdges(HeparinGrid model, double startVascularChance) {
         for (int i = 0; i < model.Xdim(); i++) {
             if (Math.random() < startVascularChance){
                 model.NewAgentSQ(i,0).InitVascular(EndothelialCell.HEAD_CELL, false, 0, true);

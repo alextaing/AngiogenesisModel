@@ -1,9 +1,10 @@
 package VesselModel3D;
 
 import HAL.GridsAndAgents.AgentPT3D;
+import HAL.GridsAndAgents.SphericalAgent3D;
 import HAL.Util;
 
-public class agent extends AgentPT3D<grid3D> {
+public class agent extends SphericalAgent3D<agent, grid3D> {
     ////////////////
     // PROPERTIES //
     ////////////////
@@ -20,6 +21,11 @@ public class agent extends AgentPT3D<grid3D> {
     ////////////////////
 
     // CELL TYPES
+    public static final int HEAD_CELL = 1;
+    public static final int BODY_CELL = 2;
+    public static final int MAP_PARTICLE = 3;
+    public static final int HEPARIN_ISLAND = 4;
+    public static final int MACROPHAGE = 5;
 
     // COLORS
     public static int HEAD_CELL_COLOR = Util.RED;
@@ -33,16 +39,19 @@ public class agent extends AgentPT3D<grid3D> {
     // INITIALIZATION //
     ////////////////////
 
+//    public void Init(int r) {
+//
+//    }
 
 
     /////////////
     // METHODS //
     /////////////
 
+
     public void StepCell(double divProb) {
         assert G != null;
         if (G.rng.Double() < divProb) {
-
         }
     }
 }

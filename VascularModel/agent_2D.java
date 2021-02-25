@@ -12,7 +12,7 @@ import HAL.Util;
 
 import java.util.ArrayList;
 
-public class EndothelialCell extends AgentSQ2D<HeparinGrid> {
+public class agent_2D extends AgentSQ2D<HeparinGrid> {
 
 
     // DO NOT MODIFY FOR PARAMETERS
@@ -91,7 +91,7 @@ public class EndothelialCell extends AgentSQ2D<HeparinGrid> {
 
         for (int i = 0; i < options; i++) {
             int MAPcount = 0;
-            for (EndothelialCell cell : G.IterAgents(G.divHood[i])) {
+            for (agent_2D cell : G.IterAgents(G.divHood[i])) {
                 if ((cell.type == MAP_PARTICLE) || (cell.type == HEPARIN_MAP)) {
                     MAPcount++;
                 }
@@ -130,7 +130,7 @@ public class EndothelialCell extends AgentSQ2D<HeparinGrid> {
         }
         if (G.rng.Double() < MACROPHAGE_SPAWN_CHANCE) {
             for (int i = 1; i < MAX_MACROPHAGE_PER_SPAWN * (G.rng.Double()); i++) {
-                G.NewAgentPT((HeparinGrid.x) * Math.random(), HeparinGrid.y - 2).InitMacrophage(MACROPHAGE, false, 0, false); // make a new macrophage there
+                G.NewAgentPT((HeparinGrid.x - 1) * Math.random(), HeparinGrid.y - 2).InitMacrophage(MACROPHAGE, false, 0, false); // make a new macrophage there
             }
         }
     }
@@ -221,7 +221,7 @@ public class EndothelialCell extends AgentSQ2D<HeparinGrid> {
         ArrayList<Integer> openAreas = new ArrayList<>();
         for (int i = 0; i < options; i++) {
             int MAPcount = 0;
-            for (EndothelialCell cell : G.IterAgents(G.divHood[i])) {
+            for (agent_2D cell : G.IterAgents(G.divHood[i])) {
                 if ((cell.type == HEPARIN_MAP) || (cell.type == MAP_PARTICLE)) {
                     MAPcount++;
                 }
@@ -294,8 +294,8 @@ public class EndothelialCell extends AgentSQ2D<HeparinGrid> {
             assert G != null;
             int occupied = MapOccupiedHood(G.Macrophage_sense_hood);
             for (int i = 0; i < occupied; i++) {
-                Iterable<EndothelialCell> agents = G.IterAgents(G.Macrophage_sense_hood[i]);
-                for (EndothelialCell agent : agents) {
+                Iterable<agent_2D> agents = G.IterAgents(G.Macrophage_sense_hood[i]);
+                for (agent_2D agent : agents) {
                     if (agent.type == MACROPHAGE) {
                         G.VEGF.Set(Isq(), 1);
                         return;

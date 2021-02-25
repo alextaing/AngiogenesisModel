@@ -7,7 +7,6 @@ FALL 2020
 package VascularModel;
 
 import HAL.GridsAndAgents.AgentGrid2D;
-import HAL.GridsAndAgents.AgentSQ2D;
 import HAL.GridsAndAgents.PDEGrid2D;
 import HAL.Gui.GridWindow;
 import HAL.Rand;
@@ -15,7 +14,6 @@ import HAL.Util;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.invoke.StringConcatFactory;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Timestamp;
@@ -48,7 +46,7 @@ import java.util.ArrayList;
 // ----------------------------------------------- GRID ZONE -----------------------------------------------------------
 
 
-public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
+public class HeparinGrid extends AgentGrid2D<agent_2D> {
 
     /**
      * PARAMETERS!
@@ -68,6 +66,8 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
     public final static double DIV_PROB = 1; // chance of dividing not in presence of VEGF
     public final static double SPLIT_PROB = 0.01; // how likely is endothelial cell to branch
     public final static double START_VASCULAR_CHANCE = 0.05; // percent of initializing an off branch from wound site
+
+    // MACROPHAGE PARAMETERS
     public final static double MACROPHAGE_SPAWN_CHANCE = 0.00005;
     public final static int MAX_MACROPHAGE_PER_SPAWN = 2;
     public final static double MACROPHAGE_FORWARD_TENDENCY  = 0.3;
@@ -75,11 +75,11 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
     // MAP GEL PARAMETERS
     public final static int MAP_RADIUS = 3; // radius of MAP particle
     public final static int MAP_SPACING = 6; // spacing radius from center of MAP particle
-    public final static int MAP_PARTICLES = 800; // number of MAP particles
     public final static double DIFFUSION_COEFFICIENT = 0.07; // diffusion coefficient
+    //    public final static int MAP_PARTICLES = 800; // number of MAP particles
 
     // MAIN METHOD PARAMETERS
-    public final static int x = 200; // x dimension of the window
+    public final static int x = 150; // x dimension of the window (94)
     public final static int y = 312; // y dimension of the window 312
     public final static int SCALE_FACTOR = 2;
     public final static int TICK_PAUSE = 1;
@@ -88,11 +88,11 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
 
     //------------------------------------------------------------------------------------------------------------------
 
-    public static int HEAD_CELL = EndothelialCell.HEAD_CELL;
-    public static int BODY_CELL = EndothelialCell.BODY_CELL;
-    public static int MAP_PARTICLE = EndothelialCell.MAP_PARTICLE;
-    public static int HEPARIN_MAP = EndothelialCell.HEPARIN_MAP;
-    public static int MACROPHAGE = EndothelialCell.MACROPHAGE;
+    public static int HEAD_CELL = agent_2D.HEAD_CELL;
+    public static int BODY_CELL = agent_2D.BODY_CELL;
+    public static int MAP_PARTICLE = agent_2D.MAP_PARTICLE;
+    public static int HEPARIN_MAP = agent_2D.HEPARIN_MAP;
+    public static int MACROPHAGE = agent_2D.MACROPHAGE;
 
     public static ArrayList<Double> arrivedTime = new ArrayList<>(); // the time of vessels that have arrived
     public static ArrayList<Integer> arrivedLengths = new ArrayList<>(); // the length of vessels upon arrival
@@ -118,7 +118,7 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
      * @param y y dimension of grid
      */
     public HeparinGrid (int x, int y) { // Constructor for the agent grid
-        super(x, y, EndothelialCell.class);
+        super(x, y, agent_2D.class);
         VEGF = new PDEGrid2D(x, y);
     }
 
@@ -128,7 +128,7 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
      * @param splitProb probability of branching
      */
     public void StepCells(double divProb, double splitProb){ // steps all the cells
-        for (EndothelialCell endoCell : this) {
+        for (agent_2D endoCell : this) {
             endoCell.StepCell(divProb, splitProb);
         }
         IncTick();
@@ -154,7 +154,7 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
         for (int i = 0; i < length; i++) {
             int color = Util.BLACK;
             if (GetAgent(i) != null) {
-                EndothelialCell cell = GetAgent(i);
+                agent_2D cell = GetAgent(i);
                 color = cell.color;
             }
             win.SetPix(i, color);
@@ -169,9 +169,9 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
     public void initVascular(HeparinGrid model, double startVascularChance) {
         for (int i = 0; i < model.Xdim(); i++) {
             if (Math.random() < startVascularChance){
-                model.NewAgentSQ(i,0).InitVascular(EndothelialCell.HEAD_CELL, false, 0, true);
+                model.NewAgentSQ(i,0).InitVascular(agent_2D.HEAD_CELL, false, 0, true);
             } else {
-                model.NewAgentSQ(i, 0).InitVascular(EndothelialCell.BODY_CELL, false, 0, true);
+                model.NewAgentSQ(i, 0).InitVascular(agent_2D.BODY_CELL, false, 0, true);
             }
         }
     }
@@ -184,36 +184,36 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
     public void initVascularTwoEdges(HeparinGrid model, double startVascularChance) {
         for (int i = 0; i < model.Xdim(); i++) {
             if (Math.random() < startVascularChance){
-                model.NewAgentSQ(i,0).InitVascular(EndothelialCell.HEAD_CELL, false, 0, true);
+                model.NewAgentSQ(i,0).InitVascular(agent_2D.HEAD_CELL, false, 0, true);
             } else {
-                model.NewAgentSQ(i, 0).InitVascular(EndothelialCell.BODY_CELL, false, 0, true);
+                model.NewAgentSQ(i, 0).InitVascular(agent_2D.BODY_CELL, false, 0, true);
             }
         }
         for (int i = 0; i < model.Xdim(); i++) {
             if (Math.random() < startVascularChance){
-                model.NewAgentSQ(i,model.yDim-1).InitVascular(EndothelialCell.HEAD_CELL, false, 0, false);
+                model.NewAgentSQ(i,model.yDim-1).InitVascular(agent_2D.HEAD_CELL, false, 0, false);
             } else {
-                model.NewAgentSQ(i, model.yDim-1).InitVascular(EndothelialCell.BODY_CELL, false, 0, false);
+                model.NewAgentSQ(i, model.yDim-1).InitVascular(agent_2D.BODY_CELL, false, 0, false);
             }
         }
     }
 
-    /**
-     * Initializes MAP particles as point particles
-     * @param model model to draw the particles in
-     */
-    public void initMAPPointParticles(HeparinGrid model, double Heparin_Percent){
-        for (int i = 0; i < MAP_PARTICLES; i++) { // creates the MAPs
-            int celltype = EndothelialCell.MAP_PARTICLE;
-            double chance = Math.random();
-            if (chance < Heparin_Percent){
-                celltype = EndothelialCell.HEPARIN_MAP;
-            }
-            int randx =(int)(model.xDim*Math.random());
-            int randy =(int)(model.yDim*Math.random());
-            model.NewAgentSQ(randx,randy).Init(celltype, false, 0);
-        }
-    }
+//    /**
+//     * Initializes MAP particles as point particles
+//     * @param model model to draw the particles in
+//     */
+//    public void initMAPPointParticles(HeparinGrid model, double Heparin_Percent){
+//        for (int i = 0; i < MAP_PARTICLES; i++) { // creates the MAPs
+//            int celltype = agent_2D.MAP_PARTICLE;
+//            double chance = Math.random();
+//            if (chance < Heparin_Percent){
+//                celltype = agent_2D.HEPARIN_MAP;
+//            }
+//            int randx =(int)(model.xDim*Math.random());
+//            int randy =(int)(model.yDim*Math.random());
+//            model.NewAgentSQ(randx,randy).Init(celltype, false, 0);
+//        }
+//    }
 
     /**
      * Initializes MAP particles as full sized MAP particles
@@ -221,10 +221,10 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
      */
     public void initMAPParticles(HeparinGrid model, double Heparin_Percent){
         for (int i = 0; i < x*y; i++) {
-            int cellType = EndothelialCell.MAP_PARTICLE;
+            int cellType = agent_2D.MAP_PARTICLE;
             double chance = Math.random();
             if (chance < Heparin_Percent){
-                cellType = EndothelialCell.HEPARIN_MAP;
+                cellType = agent_2D.HEPARIN_MAP;
             }
 
             int occlusions = MapOccupiedHood(MAP_space, i);
@@ -261,13 +261,10 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
         // endothelial cell, MAP Particle, and Heparin MAP Data
         StringBuilder endothelial_cell_data = new StringBuilder();
 
-        // TEST
-        int testanasto = 0;
-
         for (int x_coord = 0; x_coord < x; x_coord++) {
             for (int y_coord = 0; y_coord < y; y_coord++) {
-                Iterable<EndothelialCell> agents = IterAgents(x_coord, y_coord);
-                for (EndothelialCell agent : agents) {
+                Iterable<agent_2D> agents = IterAgents(x_coord, y_coord);
+                for (agent_2D agent : agents) {
                     if (agent.type == HEAD_CELL || agent.type == BODY_CELL){
                         if (endothelial_cell_data.length() == 0){
                             endothelial_cell_data.append("Vessel Coordinates (x-y)");
@@ -307,7 +304,7 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
         StringBuilder finalLength_data= new StringBuilder();
         StringBuilder invasionDepth_data= new StringBuilder();
 
-        for (EndothelialCell cell : IterAgentsRect(0,0,x,y)){
+        for (agent_2D cell : IterAgentsRect(0,0,x,y)){
             if (cell.type == HEAD_CELL) {
                 int invDepth;
                 if (cell.vesselBottom){
@@ -337,8 +334,8 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
         for (int x_coord = 0; x_coord < x; x_coord++) {
             for (int y_coord = 0; y_coord < y; y_coord++) {
                 int vesselCount = 0;
-                Iterable<EndothelialCell> cells = IterAgents(x_coord, y_coord);
-                for (EndothelialCell cell: cells) {
+                Iterable<agent_2D> cells = IterAgents(x_coord, y_coord);
+                for (agent_2D cell: cells) {
                     if (cell.type == HEAD_CELL || cell.type == BODY_CELL){
                         vesselCount++;
                     }
@@ -465,7 +462,7 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
                     model.ClearData();
                     model.Reset();
                     model.ResetTick();
-                    EndothelialCell.start_endo = false;
+                    agent_2D.start_endo = false;
                     model.VEGF = new PDEGrid2D(x, y);
                     model.initVascularTwoEdges(model, START_VASCULAR_CHANCE);
                     model.initMAPParticles(model, heparinPercentage);
@@ -487,6 +484,5 @@ public class HeparinGrid extends AgentGrid2D<EndothelialCell> {
             }
         }
     }
-
 }
 

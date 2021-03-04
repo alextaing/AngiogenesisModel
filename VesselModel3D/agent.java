@@ -11,7 +11,7 @@ public class agent extends SphericalAgent3D<agent, grid3D> {
     // PROPERTIES //
     ////////////////
 
-    int color = Util.WHITE;
+    int color;
     int type;
     int length = 0;
     int origin;
@@ -42,10 +42,29 @@ public class agent extends SphericalAgent3D<agent, grid3D> {
 
     int[] posneg = {1, -1};
     int[] MAP_init_hood = Util.SphereHood(true, grid3D.MAP_RAD); // EDIT LATER, ADD GAP?
+    public static double MAP_RAD = grid3D.MAP_RAD;
 
     ////////////////////
     // INITIALIZATION //
     ////////////////////
+
+    public void Init(int type, double radius){
+
+        this.radius = radius;
+        this.type = type;
+
+        if (type == HEAD_CELL) {
+            this.color = HEAD_CELL_COLOR; // Growing endothelial cells
+        } else if (type == BODY_CELL){
+            this.color = BODY_CELL_COLOR;
+        } else if (type == MAP_PARTICLE){
+            this.color = MAP_PARTICLE_COLOR; // normal MAP
+        } else if (type == HEPARIN_ISLAND) { // Inactive Endothelial cells
+            this.color = HEPARIN_MAP_COLOR; // Heparin MAP
+        } else if (type == MACROPHAGE) {
+            this.color = MACROPHAGE_COLOR;
+        }
+    }
 
     public void Recursive_MAP_Generator(){
         assert G != null;
@@ -76,6 +95,7 @@ public class agent extends SphericalAgent3D<agent, grid3D> {
 
                 if (x_in_range && y_in_range && open_for_MAP){
                     agent new_agent = G.NewAgentPT(new_agent_x, new_agent_y, Zpt());
+                    new_agent.Init(MAP_PARTICLE, MAP_RAD);
                     new_agent.Recursive_MAP_Generator();
                 }
             }
@@ -111,10 +131,9 @@ public class agent extends SphericalAgent3D<agent, grid3D> {
 
         if (y_in_range && z_in_range && open_for_MAP){
             agent new_agent = G.NewAgentPT(Xpt(), new_agent_y, new_agent_z);
-            System.out.println(Zpt());
+            new_agent.Init(MAP_PARTICLE, MAP_RAD);
             new_agent.Recursive_MAP_Generator();
         }
-
     }
 
     /////////////

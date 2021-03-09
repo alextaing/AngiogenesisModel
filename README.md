@@ -17,7 +17,7 @@ NOTE: If IntelliJ warns about overriding the .idea file, select OK.
 7) Open HeparinGrid.java in IntelliJ and click "Add Configuration" located in the top right corner between the hammer button and the play button
 8) In the opened window, click the plus sign in the upper left corner to open a dropdown menu. Select application.
 9) Name the application (suggested, HeparinGrid)
-10) Under the "Build and Run" header, select select the main class called "VascularModel.HeparinGrid" by clicking on the file icon at the end of the first input box.
+10) Under the "Build and Run" header, select select the main class called "VascularModel.woundGrid_2D" by clicking on the file icon at the end of the first input box.
 11) Select OK. Now the program can be run by selecting the play button in the top right corner.
 
 Enjoy!

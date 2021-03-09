@@ -46,7 +46,7 @@ import java.util.ArrayList;
 // ----------------------------------------------- GRID ZONE -----------------------------------------------------------
 
 
-public class HeparinGrid extends AgentGrid2D<agent_2D> {
+public class woundGrid_2D extends AgentGrid2D<agent_2D> {
 
     /**
      * PARAMETERS!
@@ -117,7 +117,7 @@ public class HeparinGrid extends AgentGrid2D<agent_2D> {
      * @param x x dimension of grid
      * @param y y dimension of grid
      */
-    public HeparinGrid (int x, int y) { // Constructor for the agent grid
+    public woundGrid_2D(int x, int y) { // Constructor for the agent grid
         super(x, y, agent_2D.class);
         VEGF = new PDEGrid2D(x, y);
     }
@@ -166,7 +166,7 @@ public class HeparinGrid extends AgentGrid2D<agent_2D> {
      * @param model the model to draw the vessels in
      * @param startVascularChance ratio of head to body vessels in wound edge
      */
-    public void initVascular(HeparinGrid model, double startVascularChance) {
+    public void initVascular(woundGrid_2D model, double startVascularChance) {
         for (int i = 0; i < model.Xdim(); i++) {
             if (Math.random() < startVascularChance){
                 model.NewAgentSQ(i,0).InitVascular(agent_2D.HEAD_CELL, false, 0, true);
@@ -181,7 +181,7 @@ public class HeparinGrid extends AgentGrid2D<agent_2D> {
      * @param model the model to draw the vessels in
      * @param startVascularChance ratio of head to body vessels in wound edge
      */
-    public void initVascularTwoEdges(HeparinGrid model, double startVascularChance) {
+    public void initVascularTwoEdges(woundGrid_2D model, double startVascularChance) {
         for (int i = 0; i < model.Xdim(); i++) {
             if (Math.random() < startVascularChance){
                 model.NewAgentSQ(i,0).InitVascular(agent_2D.HEAD_CELL, false, 0, true);
@@ -219,7 +219,7 @@ public class HeparinGrid extends AgentGrid2D<agent_2D> {
      * Initializes MAP particles as full sized MAP particles
      * @param model model to draw the particles in
      */
-    public void initMAPParticles(HeparinGrid model, double Heparin_Percent){
+    public void initMAPParticles(woundGrid_2D model, double Heparin_Percent){
         for (int i = 0; i < x*y; i++) {
             int cellType = agent_2D.MAP_PARTICLE;
             double chance = Math.random();
@@ -418,7 +418,7 @@ public class HeparinGrid extends AgentGrid2D<agent_2D> {
         GridWindow gridWin = new GridWindow("Endothelial Cells",x, y, SCALE_FACTOR); // window for agents
         GridWindow VEGFWin = new GridWindow("VEGF Diffusion", x, y, SCALE_FACTOR); // window for diffusion
 
-        HeparinGrid model = new HeparinGrid(x, y); // instantiate agent grid
+        woundGrid_2D model = new woundGrid_2D(x, y); // instantiate agent grid
 
         Path fileName= Path.of("VascularModel\\EndoData");
         File EndoDatafile = new File(String.valueOf(fileName));

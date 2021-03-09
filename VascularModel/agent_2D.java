@@ -12,7 +12,7 @@ import HAL.Util;
 
 import java.util.ArrayList;
 
-public class agent_2D extends AgentSQ2D<HeparinGrid> {
+public class agent_2D extends AgentSQ2D<woundGrid_2D> {
 
 
     // DO NOT MODIFY FOR PARAMETERS
@@ -28,14 +28,14 @@ public class agent_2D extends AgentSQ2D<HeparinGrid> {
     public static int HEPARIN_MAP_COLOR = Util.RGB(48.0 / 255, 191.0 / 255, 217.0 / 255); // Heparin MAP;
     public static int MACROPHAGE_COLOR = Util.WHITE;
 
-    public static double VASCULAR_VEGF_INTAKE = HeparinGrid.VASCULAR_VEGF_INTAKE;
-    public static double VEGF_DIV_PROB = HeparinGrid.VEGF_DIV_PROB;
-    public static double BODY_CELL_BRANCH_PROB = HeparinGrid.BODY_CELL_BRANCH_PROB;
-    public final static double MACROPHAGE_SPAWN_CHANCE = HeparinGrid.MACROPHAGE_SPAWN_CHANCE;
-    public final static int MAX_MACROPHAGE_PER_SPAWN = HeparinGrid.MAX_MACROPHAGE_PER_SPAWN;
-    public final static double MACROPHAGE_FORWARD_TENDENCY = HeparinGrid.MACROPHAGE_FORWARD_TENDENCY;
-    public final static int ENDO_CELL_TICK_DELAY = HeparinGrid.ENDO_CELL_TICK_DELAY;
-    public final static double VEGF_SENSITIVITY = HeparinGrid.VEGF_SENSITIVITY;
+    public static double VASCULAR_VEGF_INTAKE = woundGrid_2D.VASCULAR_VEGF_INTAKE;
+    public static double VEGF_DIV_PROB = woundGrid_2D.VEGF_DIV_PROB;
+    public static double BODY_CELL_BRANCH_PROB = woundGrid_2D.BODY_CELL_BRANCH_PROB;
+    public final static double MACROPHAGE_SPAWN_CHANCE = woundGrid_2D.MACROPHAGE_SPAWN_CHANCE;
+    public final static int MAX_MACROPHAGE_PER_SPAWN = woundGrid_2D.MAX_MACROPHAGE_PER_SPAWN;
+    public final static double MACROPHAGE_FORWARD_TENDENCY = woundGrid_2D.MACROPHAGE_FORWARD_TENDENCY;
+    public final static int ENDO_CELL_TICK_DELAY = woundGrid_2D.ENDO_CELL_TICK_DELAY;
+    public final static double VEGF_SENSITIVITY = woundGrid_2D.VEGF_SENSITIVITY;
 
     int color;
     int type;
@@ -118,6 +118,23 @@ public class agent_2D extends AgentSQ2D<HeparinGrid> {
         return mincoordint.get((int) (Math.random() * mincoordint.size())); // otherwise, return a random hood point on the list
     }
 
+//    /**
+//     * Initializes macrophages
+//     */
+//    public void initMacrophages() {
+//        assert G != null;
+//        if (G.rng.Double() < MACROPHAGE_SPAWN_CHANCE) {
+//            for (int i = 1; i < MAX_MACROPHAGE_PER_SPAWN * (G.rng.Double()); i++) {
+//                G.NewAgentPT((woundGrid_2D.x) * Math.random(), 1).InitMacrophage(MACROPHAGE, false, 0, true); // make a new macrophage there
+//            }
+//        }
+//        if (G.rng.Double() < MACROPHAGE_SPAWN_CHANCE) {
+//            for (int i = 1; i < MAX_MACROPHAGE_PER_SPAWN * (G.rng.Double()); i++) {
+//                G.NewAgentPT((woundGrid_2D.x - 1) * Math.random(), woundGrid_2D.y - 2).InitMacrophage(MACROPHAGE, false, 0, false); // make a new macrophage there
+//            }
+//        }
+//    }
+
     /**
      * Initializes macrophages
      */
@@ -125,12 +142,12 @@ public class agent_2D extends AgentSQ2D<HeparinGrid> {
         assert G != null;
         if (G.rng.Double() < MACROPHAGE_SPAWN_CHANCE) {
             for (int i = 1; i < MAX_MACROPHAGE_PER_SPAWN * (G.rng.Double()); i++) {
-                G.NewAgentPT((HeparinGrid.x) * Math.random(), 1).InitMacrophage(MACROPHAGE, false, 0, true); // make a new macrophage there
+                G.NewAgentPT((woundGrid_2D.x) * Math.random(), 1).InitMacrophage(MACROPHAGE, false, 0, true); // make a new macrophage there
             }
         }
         if (G.rng.Double() < MACROPHAGE_SPAWN_CHANCE) {
             for (int i = 1; i < MAX_MACROPHAGE_PER_SPAWN * (G.rng.Double()); i++) {
-                G.NewAgentPT((HeparinGrid.x - 1) * Math.random(), HeparinGrid.y - 2).InitMacrophage(MACROPHAGE, false, 0, false); // make a new macrophage there
+                G.NewAgentPT((woundGrid_2D.x - 1) * Math.random(), woundGrid_2D.y - 2).InitMacrophage(MACROPHAGE, false, 0, false); // make a new macrophage there
             }
         }
     }
@@ -253,14 +270,14 @@ public class agent_2D extends AgentSQ2D<HeparinGrid> {
     public void checkIfArrived() {
         if (!arrived) {
             if (type == HEAD_CELL) {
-                if (Ysq() == HeparinGrid.y / 2) {
+                if (Ysq() == woundGrid_2D.y / 2) {
                     this.arrived = true;
                     assert G != null;
                     double time = (double) G.GetTick() / 6;
                     int arrivedLength = this.length * 16;
-                    HeparinGrid.arrivedTime.add(time);
-                    HeparinGrid.arrivedLengths.add(arrivedLength);
-                    System.out.println(HeparinGrid.arrivedTime.size() + ") " + time + " hours, " + arrivedLength + " microns");
+                    woundGrid_2D.arrivedTime.add(time);
+                    woundGrid_2D.arrivedLengths.add(arrivedLength);
+                    System.out.println(woundGrid_2D.arrivedTime.size() + ") " + time + " hours, " + arrivedLength + " microns");
                 }
             }
         }
@@ -327,11 +344,11 @@ public class agent_2D extends AgentSQ2D<HeparinGrid> {
         if (type == MACROPHAGE) {
             assert G != null;
 
-            if ((1 > Xpt()) || (Xpt() > HeparinGrid.x - 1)) {
+            if ((1 > Xpt()) || (Xpt() > woundGrid_2D.x - 1)) {
                 Dispose();
                 return;
             }
-            if ((1 > Ypt()) || (Ypt() > HeparinGrid.y - 1)) {
+            if ((1 > Ypt()) || (Ypt() > woundGrid_2D.y - 1)) {
                 Dispose();
                 return;
             }

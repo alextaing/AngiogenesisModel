@@ -19,8 +19,8 @@ NOTE: this may seem like you just added the libraries you removed, but these ste
 9) Select Apply, then OK.
 10) Click "Add Configuration" located in the top right corner between the hammer button and the play button
 11) In the opened window, click the plus sign in the upper left corner to open a dropdown menu. Select application.
-12) Name the application (suggested, HeparinGrid)
-13) Under the "Build and Run" header, select select the main class called "VascularModel.HeparinGrid" by clicking on the file icon at the end of the first input box.
+12) Name the application (suggested, Wound Grid)
+13) Under the "Build and Run" header, select select the main class called "VascularModel.woundGrid_2D" by clicking on the file icon at the end of the first input box.
 14) Select OK. Now the program can be run by selecting the play button in the top right corner.
 
 Enjoy!

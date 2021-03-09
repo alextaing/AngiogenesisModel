@@ -41,6 +41,7 @@ public class agent_2D extends AgentSQ2D<woundGrid_2D> {
     int type;
     int length = 0;
     boolean macrophageBottom;
+    boolean macrophageOff;
     boolean vesselBottom;
     boolean arrived = false; // true if the vessel has reached the wound edge
     public static boolean start_endo = false; // when the endo cells begin to grow after macrophage start
@@ -138,7 +139,7 @@ public class agent_2D extends AgentSQ2D<woundGrid_2D> {
     /**
      * Initializes macrophages
      */
-    public void initMacrophages() {
+    public void startMacrophageInvasion() {
         assert G != null;
         if (G.rng.Double() < MACROPHAGE_SPAWN_CHANCE) {
             for (int i = 1; i < MAX_MACROPHAGE_PER_SPAWN * (G.rng.Double()); i++) {
@@ -215,6 +216,7 @@ public class agent_2D extends AgentSQ2D<woundGrid_2D> {
         this.type = type;
         this.length = length;
         this.macrophageBottom = macrophageBottom;
+        this.macrophageOff = false;
 
         if (type == HEAD_CELL) {
             this.color = HEAD_CELL_COLOR; // Growing endothelial cells
@@ -313,6 +315,13 @@ public class agent_2D extends AgentSQ2D<woundGrid_2D> {
             for (int i = 0; i < occupied; i++) {
                 Iterable<agent_2D> agents = G.IterAgents(G.Macrophage_sense_hood[i]);
                 for (agent_2D agent : agents) {
+                    if (macrophageOff) {
+                        return;
+                    }
+                    if ((agent.type == HEAD_CELL) || (agent.type == BODY_CELL) || (agent.macrophageOff) ) {
+                        macrophageOff = true;
+                        return;
+                    }
                     if (agent.type == MACROPHAGE) {
                         G.VEGF.Set(Isq(), 1);
                         return;
@@ -438,7 +447,7 @@ public class agent_2D extends AgentSQ2D<woundGrid_2D> {
         ConsumeVEGF();
 
         // Make Macrophages
-        initMacrophages();
+        startMacrophageInvasion();
 
         // check if endothelial cells will divide yet
         CheckEndothelialStart();

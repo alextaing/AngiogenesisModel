@@ -328,7 +328,7 @@ public class woundGrid_2D extends AgentGrid2D<agent_2D> {
             }
         }
 
-        // anastamoses data
+        // anastomoses data
         int anastomoses = 0;
 
         for (int x_coord = 0; x_coord < x; x_coord++) {

@@ -1,12 +1,9 @@
 package VesselModel3D;
 
-import HAL.GridsAndAgents.AgentPT3D;
 import HAL.GridsAndAgents.SphericalAgent3D;
 import HAL.Util;
 
-import java.util.Arrays;
-
-public class agent extends SphericalAgent3D<agent, grid3D> {
+public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
     ////////////////
     // PROPERTIES //
     ////////////////
@@ -93,8 +90,8 @@ public class agent extends SphericalAgent3D<agent, grid3D> {
                     }
                 }
 
-                if (x_in_range && y_in_range && open_for_MAP){
-                    agent new_agent = G.NewAgentPT(new_agent_x, new_agent_y, Zpt());
+                if (x_in_range && y_in_range && open_for_MAP) {
+                    agent3D new_agent = G.NewAgentPT(new_agent_x, new_agent_y, Zpt());
                     new_agent.Init(MAP_PARTICLE, MAP_RAD);
                     new_agent.Recursive_MAP_Generator();
                 }
@@ -130,7 +127,7 @@ public class agent extends SphericalAgent3D<agent, grid3D> {
         }
 
         if (y_in_range && z_in_range && open_for_MAP){
-            agent new_agent = G.NewAgentPT(Xpt(), new_agent_y, new_agent_z);
+            agent3D new_agent = G.NewAgentPT(Xpt(), new_agent_y, new_agent_z);
             new_agent.Init(MAP_PARTICLE, MAP_RAD);
             new_agent.Recursive_MAP_Generator();
         }

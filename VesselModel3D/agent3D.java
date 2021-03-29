@@ -3,17 +3,23 @@ package VesselModel3D;
 import HAL.GridsAndAgents.SphericalAgent3D;
 import HAL.Util;
 
+/**
+ * NOTES:  IN ORDER FOR PROGRAM TO WORK, MUST MODIFY SphericalAgent3D class.
+ * See Required_additions for specifics.
+ */
+
 public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
     ////////////////
     // PROPERTIES //
     ////////////////
 
     int color;
-    int type;
     int length = 0;
     int origin;
     boolean arrived;
+    double[] pastLocation;
     public static boolean start_endo = false; // determines start time of endo growth after macrophages
+
 
     ////////////////////
     // PROPERTY TYPES //
@@ -38,7 +44,6 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
     ///////////////////////
 
     int[] posneg = {1, -1};
-    int[] MAP_init_hood = Util.SphereHood(true, grid3D.MAP_RAD); // EDIT LATER, ADD GAP?
     public static double MAP_RAD = grid3D.MAP_RAD;
 
     ////////////////////
@@ -140,7 +145,44 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
 
     public void StepCell(double divProb) {
         assert G != null;
-        if (G.rng.Double() < divProb) {
+        if(type == HEAD_CELL) {
+            chemotaxis();
+            if (G.rng.Double() < 0.001) {
+                agent3D cell = G.NewAgentPT(Xpt()-1.5, Ypt()-1.5, Zpt()-1.5);
+                cell.Init(HEAD_CELL, radius);
+                cell.pastLocation = new double[] {Xpt()-1.5, Ypt()-1.5, Zpt()-1.5};
+            }
+        }
+    }
+
+    public void chemotaxis() {
+        CapVelocity(0.3);
+        double CHEMOTAX_RATE = 2;
+        double FORCE_SCALER = 0.1;
+
+        double gradX=G.VEGF.GradientX(Xsq(),Ypt(), Zpt());
+        double gradY=G.VEGF.GradientY(Xsq(),Ypt(), Zpt());
+        double gradZ=G.VEGF.GradientZ(Xpt(), Ypt(), Zpt());
+
+        double norm= Util.Norm(gradX,gradY,gradZ);
+        if(gradX!=0) {
+            xVel += gradX / norm * CHEMOTAX_RATE;
+        }
+        if(gradY!=0) {
+            yVel += gradY / norm * CHEMOTAX_RATE;
+        }
+        if(gradZ!=0) {
+            zVel += gradZ / norm * CHEMOTAX_RATE;
+        }
+        SumForcesMAP(radius+16,(overlap,other)-> overlap*FORCE_SCALER, new int[] {MAP_PARTICLE, HEPARIN_ISLAND});
+        ForceMove();
+
+        // UPDATE PAST LOCATION
+        if(Dist(pastLocation[0], pastLocation[1], pastLocation[2]) > radius) {
+            G.NewAgentPT(Xpt()-1, Ypt()-1, Zpt()-1).Init(BODY_CELL, radius);
+            pastLocation[0] = Xpt();
+            pastLocation[1] = Ypt();
+            pastLocation[2] = Zpt();
         }
     }
 }

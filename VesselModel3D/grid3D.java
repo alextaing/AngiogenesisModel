@@ -2,7 +2,9 @@ package VesselModel3D;
 
 import HAL.GridsAndAgents.AgentGrid3D;
 import HAL.GridsAndAgents.PDEGrid3D;
+import HAL.Gui.GridWindow;
 import HAL.Gui.OpenGL3DWindow;
+import HAL.Interfaces.DoubleToInt;
 import HAL.Rand;
 import HAL.Util;
 
@@ -33,7 +35,7 @@ public class grid3D extends AgentGrid3D<agent3D> {
     // GRID PROPERTIES
     public static final int x = 200 ;//* (SCALE_FACTOR);
     public static final int y = 100 ;//* (SCALE_FACTOR);
-    public static final int z = 500 ;//* (SCALE_FACTOR);
+    public static final int z = 300 ;//* (SCALE_FACTOR);
     public final static int TICK_PAUSE = 1;
     public final static int TIMESTEPS = 10000; // how long will the simulation run?
     Rand rng = new Rand();
@@ -57,17 +59,26 @@ public class grid3D extends AgentGrid3D<agent3D> {
     public static void main(String[] args) {
         OpenGL3DWindow window = new OpenGL3DWindow("Angiogenesis", 900, 900, x, y, z);
         grid3D woundGrid = new grid3D(x, y, z);
+        GridWindow VEGF_xz = new GridWindow("VEGF Diffusion X-Z plane", x, z);
 
         Init_MAP_Particles(woundGrid);
 
-        agent3D cell = woundGrid.NewAgentPT(x * Math.random(), y * Math.random(), z * Math.random());
-        cell.Init(HEAD_CELL, 0.5);
+        agent3D cell = woundGrid.NewAgentPT(50, 50, 50);
+        agent3D cell2 = woundGrid.NewAgentPT(40, 50, 30);
+        agent3D cell3 = woundGrid.NewAgentPT(30, 20, 50);
+
+        cell.pastLocation = new double[]{50, 50, 50};
+        cell2.pastLocation = new double[]{40, 50, 30};
+        cell3.pastLocation = new double[]{30, 20, 50};
+        cell.Init(HEAD_CELL, 2);
+        cell2.Init(HEAD_CELL, 2);
+        cell3.Init(HEAD_CELL, 2);
 
         for (int step = 0; step < TIMESTEPS; step++) {
-            if (step % 20 == 0){
-                cell.Divide(1, woundGrid.rng).Init(HEAD_CELL, 0.5);
-            }
+            woundGrid.StepVEGF();
+            woundGrid.StepCells(0.5);
             woundGrid.DrawGrid(window);
+            woundGrid.DrawGradientWindowed(VEGF_xz, Util::HeatMapBGR);
             woundGrid.DrawAgents(window);
         }
     }
@@ -113,7 +124,18 @@ public class grid3D extends AgentGrid3D<agent3D> {
             cell.StepCell(divProb);
         }
         IncTick();
+    }
 
+    public void StepVEGF(){
+        for (int i = 1; i < x; i++){
+            for (int j = 1; j < y; j++){
+                for (int k = 1; k < z; k++){
+                    VEGF.Set(i, j, k, (i+j+k)/5000.0);
+                }
+            }
+        }
+        VEGF.Diffusion(0.1);
+        VEGF.Update();
     }
 
     //////////////////
@@ -141,6 +163,35 @@ public class grid3D extends AgentGrid3D<agent3D> {
             window.CelSphere(cell.Xpt(),cell.Ypt(),cell.Zpt(),cell.radius, cell.color);
         }
         window.Update();
+    }
+
+    public void DrawGradientWindowed (GridWindow window, DoubleToInt DrawConcs){
+        for (int x = 0; x < VEGF.xDim; x++) {
+            for (int z = 0; z < VEGF.zDim; z++) {
+                double VEGF_Sum=0;
+                //add column to avgConcs
+                for (int y = 0; y < VEGF.yDim; y++) {
+                    VEGF_Sum+=VEGF.Get(x,y,z);
+                }
+                VEGF_Sum/=VEGF.yDim;
+                window.SetPix(x,z,DrawConcs.DoubleToInt(VEGF_Sum));
+            }
+        }
+    }
+
+    public void DrawGradientEmbedded (OpenGL3DWindow window, DoubleToInt DrawConcs){
+        window.ClearBox(Util.RGB(225/245.0,198/245.0,153/245.0), Util.BLUE);
+        for (int x = 0; x < VEGF.xDim; x++) {
+            for (int z = 0; z < VEGF.zDim; z++) {
+                double VEGF_Sum=0;
+                //add column to avgConcs
+                for (int y = 0; y < VEGF.yDim; y++) {
+                    VEGF_Sum+=VEGF.Get(x,y,z);
+                }
+                VEGF_Sum/=VEGF.yDim;
+                window.SetPixXZ(x,z,DrawConcs.DoubleToInt(VEGF_Sum));
+            }
+        }
     }
 
     /////////////////

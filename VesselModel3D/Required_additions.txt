@@ -6,34 +6,34 @@ public int type;
 
 ////////////////   ALEX ADDED ////////////////////////////
     public double SumForcesMAP(double interactionRad, OverlapForceResponse3D<A> OverlapFun, int[] types){
-        ArrayList<A> scratchAgentList= G.GetFreshAgentSearchArr();
-        scratchAgentList.clear();
-        double sum=0;
-        G.GetAgentsRadApprox(scratchAgentList,Xpt(),Ypt(),Zpt(),interactionRad);
-        for (A a : scratchAgentList) {
-            boolean cont = false;
-            for (int type : types) {
-                if (a.type == type) {
-                    cont = true;
-                    break;
+            ArrayList<A> scratchAgentList= G.GetFreshAgentSearchArr();
+            scratchAgentList.clear();
+            double sum=0;
+            G.GetAgentsRadApprox(scratchAgentList,Xpt(),Ypt(),Zpt(),interactionRad);
+            for (A a : scratchAgentList) {
+                boolean cont = false;
+                for (int type : types) {
+                    if (a.type == type) {
+                        cont = true;
+                        break;
+                    }
+                }
+                if(a!=this && cont){
+                    double xComp= DispX(a.Xpt());
+                    double yComp= DispY(a.Ypt());
+                    double zComp= DispZ(a.Zpt());
+                    double dist=Norm(xComp,yComp,zComp);
+                    if(dist<interactionRad) {
+                        double touchDist = (radius + a.radius) - dist;
+    //                    double force=OverlapFun.CalcForce(touchDist,a);
+                        xVel-=(xComp/dist)*xVel*(2);
+                        yVel-=(yComp/dist)*yVel*(2);
+                        zVel-=(zComp/dist)*zVel*(2);
+    //                    if(force>0){
+    //                        sum+=Math.abs(force);
+    //                    }
+                    }
                 }
             }
-            if(a!=this && cont){
-                double xComp= DispX(a.Xpt());
-                double yComp= DispY(a.Ypt());
-                double zComp= DispZ(a.Zpt());
-                double dist=Norm(xComp,yComp,zComp);
-                if(dist<interactionRad) {
-                    double touchDist = (radius + a.radius) - dist;
-//                    double force=OverlapFun.CalcForce(touchDist,a);
-                    xVel-=(xComp/dist)*xVel;
-                    yVel-=(yComp/dist)*yVel;
-                    zVel-=(zComp/dist)*zVel;
-//                    if(force>0){
-//                        sum+=Math.abs(force);
-//                    }
-                }
-            }
+            return sum;
         }
-        return sum;
-    }

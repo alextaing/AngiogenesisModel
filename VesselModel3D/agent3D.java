@@ -18,6 +18,7 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
     int origin;
     boolean arrived;
     double[] pastLocation;
+    boolean heparinOn = true;
     public static boolean start_endo = false; // determines start time of endo growth after macrophages
 
 
@@ -45,6 +46,8 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
 
     int[] posneg = {1, -1};
     public static double MAP_RAD = grid3D.MAP_RAD;
+    public static final double HEPARIN_ISLAND_PERCENTAGE = grid3D.HEPARIN_ISLAND_PERCENTAGE;
+    public static final double VESSEL_RADIUS = grid3D.VESSEL_RADIUS;
 
     ////////////////////
     // INITIALIZATION //
@@ -96,8 +99,14 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
                 }
 
                 if (x_in_range && y_in_range && open_for_MAP) {
-                    agent3D new_agent = G.NewAgentPT(new_agent_x, new_agent_y, Zpt());
-                    new_agent.Init(MAP_PARTICLE, MAP_RAD);
+                    agent3D new_agent;
+                    if(G.rng.Double() < HEPARIN_ISLAND_PERCENTAGE){
+                        new_agent = G.NewAgentPT(new_agent_x, new_agent_y, Zpt());
+                        new_agent.Init(HEPARIN_ISLAND, MAP_RAD);
+                    } else {
+                        new_agent = G.NewAgentPT(new_agent_x, new_agent_y, Zpt());
+                        new_agent.Init(MAP_PARTICLE, MAP_RAD);
+                    }
                     new_agent.Recursive_MAP_Generator();
                 }
             }
@@ -145,25 +154,39 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
 
     public void StepCell(double divProb) {
         assert G != null;
+
+        // HEAD CELLS
         if(type == HEAD_CELL) {
             chemotaxis();
+            // BRANCH SOMETIMES
             if (G.rng.Double() < 0.001) {
-                agent3D cell = G.NewAgentPT(Xpt()-1.5, Ypt()-1.5, Zpt()-1.5);
+                agent3D cell = G.NewAgentPT(Xpt()-0.02, Ypt()-0.02, Zpt()-0.02);
                 cell.Init(HEAD_CELL, radius);
                 cell.pastLocation = new double[] {Xpt()-1.5, Ypt()-1.5, Zpt()-1.5};
             }
+
+//            G.VEGF.Add(Isq(), -0.02);
+
+        } else if (type == BODY_CELL){
+//            G.VEGF.Add(Isq(), -0.00001);
+        } else if (type == HEPARIN_ISLAND){
+            stepHeparinIslands();
         }
     }
 
     public void chemotaxis() {
-        CapVelocity(0.3);
-        double CHEMOTAX_RATE = 2;
-        double FORCE_SCALER = 0.1;
+        // MAX VELOCITY
 
+        // RATE OF GROWTH
+        double CHEMOTAX_RATE = 1;
+        double FORCE_SCALER = 1;
+
+        // GRADIENTS
         double gradX=G.VEGF.GradientX(Xsq(),Ypt(), Zpt());
         double gradY=G.VEGF.GradientY(Xsq(),Ypt(), Zpt());
         double gradZ=G.VEGF.GradientZ(Xpt(), Ypt(), Zpt());
 
+        // CALCULATE MOVEMENT
         double norm= Util.Norm(gradX,gradY,gradZ);
         if(gradX!=0) {
             xVel += gradX / norm * CHEMOTAX_RATE;
@@ -174,15 +197,34 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
         if(gradZ!=0) {
             zVel += gradZ / norm * CHEMOTAX_RATE;
         }
-        SumForcesMAP(radius+16,(overlap,other)-> overlap*FORCE_SCALER, new int[] {MAP_PARTICLE, HEPARIN_ISLAND});
+
+        // SUM FORCES AND MOVE
+        SumForcesMAP(radius+MAP_RAD,(overlap,other)-> overlap*FORCE_SCALER, new int[] {MAP_PARTICLE, HEPARIN_ISLAND});
+        CapVelocity(0.3);
         ForceMove();
 
         // UPDATE PAST LOCATION
-        if(Dist(pastLocation[0], pastLocation[1], pastLocation[2]) > radius) {
-            G.NewAgentPT(Xpt()-1, Ypt()-1, Zpt()-1).Init(BODY_CELL, radius);
+//        if(!(Dist(pastLocation[0], pastLocation[1], pastLocation[2]) < radius/2)) {
+            G.NewAgentPT(Xpt()-.01, Ypt()-.01, Zpt()-.01).Init(BODY_CELL, radius);
             pastLocation[0] = Xpt();
             pastLocation[1] = Ypt();
             pastLocation[2] = Zpt();
+//        }
+    }
+
+    public void stepHeparinIslands() {
+        if (heparinOn){
+            G.VEGF.Set(Isq(), 0.5);
+            for (agent3D agent : G.IterAgentsRad(Xpt(), Ypt(), Zpt(), MAP_RAD + VESSEL_RADIUS)) {
+                if (agent.type == HEAD_CELL || agent.type == BODY_CELL) {
+                    heparinOn = false;
+                    break;
+                }
+            }
+        } else {
+            G.VEGF.Set(Isq(), 0);
         }
     }
 }
+
+

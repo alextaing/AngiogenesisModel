@@ -23,12 +23,13 @@ public class grid3D extends AgentGrid3D<agent3D> {
     public static final boolean VIEW_VESSELS = true;
 
     // MAP GEL
-    public static final double HEPARIN_ISLAND_PERCENTAGE = 0.1; // enter as a decimal between 0 and 1, heparin microislands
+    public static final double HEPARIN_ISLAND_PERCENTAGE = 0.15; // enter as a decimal between 0 and 1, heparin microislands
     public static final double MAP_DIAMETER = 16;//80 * (SCALE_FACTOR);
     public static final double VESSEL_DIAMETER = 2;
-    public static final double MAP_GAP =  10; //16 * (SCALE_FACTOR);
+    public static final double MAP_GAP =  3; //16 * (SCALE_FACTOR);
 
     // VESSELS
+    public static final int NUM_VESSELS = 10;
 
     // AGENT PARAMETERS
     public static final double divProb = 0.3;
@@ -63,34 +64,11 @@ public class grid3D extends AgentGrid3D<agent3D> {
         // INITIALIZE WINDOWS
         OpenGL3DWindow window = new OpenGL3DWindow("Angiogenesis", 900, 900, x, y, z);
         grid3D woundGrid = new grid3D(x, y, z);
-        GridWindow VEGF_xz = new GridWindow("VEGF Diffusion X-Z plane", x, z);
+        GridWindow VEGF_xz = new GridWindow("VEGF Diffusion X-Z plane", x, z,3);
 
         // INITIALIZE MAP PARTICLES
-//        Init_MAP_Particles(woundGrid);
-
-
-        // TEST INITIALIZATION OF VESSELS ------ WILL BE REPLACED!!
-        agent3D cell = woundGrid.NewAgentPT(10, 10, 10);
-//        agent3D cell2 = woundGrid.NewAgentPT(40, 50, 30);
-//        agent3D cell3 = woundGrid.NewAgentPT(30, 20, 50);
-
-        cell.pastLocation = new double[]{10, 10, 10};
-//        cell2.pastLocation = new double[]{40, 50, 30};
-//        cell3.pastLocation = new double[]{30, 20, 50};
-        cell.Init(HEAD_CELL, VESSEL_RADIUS);
-//        cell2.Init(HEAD_CELL, VESSEL_RADIUS);
-//        cell3.Init(HEAD_CELL, VESSEL_RADIUS);
-
-        agent3D HEPMAP = woundGrid.NewAgentPT(60, 30 ,55);
-        HEPMAP.Init(HEPARIN_ISLAND, MAP_RAD);
-
-        agent3D MAP = woundGrid.NewAgentPT(20, 12 ,18);
-        MAP.Init(MAP_PARTICLE, MAP_RAD);
-        agent3D MAP2 = woundGrid.NewAgentPT(33, 19 ,33);
-        MAP2.Init(MAP_PARTICLE, MAP_RAD);
-
-        // END TESTING
-
+        Init_MAP_Particles(woundGrid);
+        Init_Vessels(woundGrid);
 
         // TICK ACTIONS
         for (int step = 0; step < TIMESTEPS; step++) {
@@ -99,6 +77,7 @@ public class grid3D extends AgentGrid3D<agent3D> {
             woundGrid.DrawGrid(window);
             woundGrid.DrawGradientWindowed(VEGF_xz, Util::HeatMapBGR);
             woundGrid.DrawAgents(window);
+            woundGrid.VEGF.Update();
 
             if(window.IsClosed()){
                 window.Close();
@@ -139,6 +118,23 @@ public class grid3D extends AgentGrid3D<agent3D> {
         MAP_seed.Recursive_MAP_Generator();
     }
 
+    public static void Init_Vessels(grid3D grid){
+        boolean empty = true;
+        for (int i = 0; i < NUM_VESSELS;) {
+            double[] location = {x*grid.rng.Double(), y*grid.rng.Double(), 0};
+            for (agent3D agent : grid.IterAgentsRad(location[0], location[1], location[2], VESSEL_RADIUS)) {
+                if (agent.type == MAP_PARTICLE || agent.type == HEPARIN_ISLAND) {
+                    empty = false;
+                    break;
+                }
+            }
+            if (empty){
+                grid.NewAgentPT(location[0], location[1], location[2]).Init_HEAD_CELL(location);
+                i++;
+            }
+        }
+    }
+
     //////////////////
     // GRID ACTIONS //
     //////////////////
@@ -151,23 +147,7 @@ public class grid3D extends AgentGrid3D<agent3D> {
     }
 
     public void StepVEGF(){
-
-        // TESTING SET BASE GRADIENT
-//        for (int i = 1; i < x; i++){
-//            for (int j = 1; j < y; j++){
-//                for (int k = 1; k < z; k++){
-//                    VEGF.Set(i, j, k, (i+j+k)/9000.0);
-//                }
-//            }
-//        }
-
-        VEGF.Set (x-1, y-1, z-1, 0.5);
-
-        // END TESTING
-
-
         VEGF.Diffusion(0.1);
-        VEGF.Update();
     }
 
     //////////////////

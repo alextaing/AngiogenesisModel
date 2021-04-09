@@ -121,8 +121,9 @@ public class grid3D extends AgentGrid3D<agent3D> {
     public static void Init_Vessels(grid3D grid){
         boolean empty = true;
         for (int i = 0; i < NUM_VESSELS;) {
+            empty = true;
             double[] location = {x*grid.rng.Double(), y*grid.rng.Double(), 0};
-            for (agent3D agent : grid.IterAgentsRad(location[0], location[1], location[2], VESSEL_RADIUS)) {
+            for (agent3D agent : grid.IterAgentsRad(location[0], location[1], location[2], MAP_RAD+VESSEL_RADIUS)) {
                 if (agent.type == MAP_PARTICLE || agent.type == HEPARIN_ISLAND) {
                     empty = false;
                     break;

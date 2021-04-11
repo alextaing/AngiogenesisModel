@@ -184,7 +184,9 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
                 }
             }
         } else if (type == BODY_CELL){
-
+            if (this.Age() > 50) {  // body cells that are of a certain tick age will consume VEGF (wait so don't disturb gradient around head cell)
+                G.VEGF.Add(Isq(), -0.001);
+            }
         } else if (type == HEPARIN_ISLAND){
             stepHeparinIslands();
         }
@@ -198,7 +200,7 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
         double FORCE_SCALER = 1;
 
         // GRADIENTS
-        if (!G.VEGF.In(Xpt(), Ypt(), Zpt())){
+        if (!G.In(Xpt(), Ypt(), Zpt())){
             return;
         }
 

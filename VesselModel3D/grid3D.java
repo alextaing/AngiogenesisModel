@@ -8,6 +8,8 @@ import HAL.Interfaces.DoubleToInt;
 import HAL.Rand;
 import HAL.Util;
 
+import java.util.concurrent.ForkJoinWorkerThread;
+
 public class grid3D extends AgentGrid3D<agent3D> {
 
     ////////////////
@@ -17,7 +19,7 @@ public class grid3D extends AgentGrid3D<agent3D> {
     public static final int SCALE_FACTOR = 2;
 
     // VIEW: what agents to display
-    public static final boolean VIEW_MAP = true;
+    public static final boolean VIEW_MAP = false;
     public static final boolean VIEW_HEP_ISLANDS = true;
     public static final boolean VIEW_MACROPHAGES = true;
     public static final boolean VIEW_VESSELS = true;
@@ -29,7 +31,7 @@ public class grid3D extends AgentGrid3D<agent3D> {
     public static final double MAP_GAP =  3; //16 * (SCALE_FACTOR);
 
     // VESSELS
-    public static final int NUM_VESSELS = 10;
+    public static final int NUM_VESSELS = 12;
 
     // AGENT PARAMETERS
     public static final double divProb = 0.3;
@@ -78,6 +80,7 @@ public class grid3D extends AgentGrid3D<agent3D> {
             woundGrid.DrawGradientWindowed(VEGF_xz, Util::HeatMapBGR);
             woundGrid.DrawAgents(window);
             woundGrid.VEGF.Update();
+            woundGrid.IncTick();
 
             if(window.IsClosed()){
                 window.Close();

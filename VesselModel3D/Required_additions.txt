@@ -5,7 +5,7 @@ public int type;
 
 
 ////////////////   ALEX ADDED ////////////////////////////
-    public double SumForcesMAP(double interactionRad, OverlapForceResponse3D<A> OverlapFun, int[] types){
+    public double SumForcesTyped(double interactionRad, OverlapForceResponse3D<A> OverlapFun, int[] types){
             ArrayList<A> scratchAgentList= G.GetFreshAgentSearchArr();
             scratchAgentList.clear();
             double sum=0;

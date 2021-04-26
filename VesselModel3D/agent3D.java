@@ -3,8 +3,6 @@ package VesselModel3D;
 import HAL.GridsAndAgents.SphericalAgent3D;
 import HAL.Util;
 
-import java.util.Arrays;
-
 /**
  * NOTES:  IN ORDER FOR PROGRAM TO WORK, MUST MODIFY SphericalAgent3D class.
  * See Required_additions for specifics.
@@ -60,6 +58,11 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
     // INITIALIZATION //
     ////////////////////
 
+    /**
+     * General agent initializing method
+     * @param type agent type (types listed near the head of the file with parameters)
+     * @param radius the radius of the particle (listed near the head of the file with parameters)
+     */
     public void Init(int type, double radius){
 
         this.radius = radius;
@@ -78,6 +81,10 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
         }
     }
 
+    /**
+     * Initializes head cell
+     * @param pastLocation the past location of the agent. (needed? may remove)
+     */
     public void Init_HEAD_CELL(double[] pastLocation){
         this.type = HEAD_CELL;
         this.color = HEAD_CELL_COLOR;
@@ -85,6 +92,21 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
         this.pastLocation = pastLocation;
     }
 
+    /**
+     * Initializes body cell
+     * @param pastLocation the past location of the agent (not necessary for body cell?)
+     */
+    public void Init_BODY_CELL(double[] pastLocation){
+        this.type = BODY_CELL;
+        this.color = BODY_CELL_COLOR;
+        this.radius = VESSEL_RADIUS;
+        this.pastLocation = pastLocation;
+    }
+
+    /**
+     * Called by the grid class.  Recursively generates MAP particles with the designated ratio of Heparin microIslands.
+     * Makes sure that they do not overlap and are spaced perfectly.
+     */
     public void Recursive_MAP_Generator(){
         assert G != null;
         // recursive function, makes 12 surrounding MAP particles if they are in bounds and unoccupied
@@ -170,6 +192,10 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
     /////////////
 
 
+    /**
+     * called on every agent by the grid class, specifying commands for each cell, depending on its type
+     * @param divProb the probability of division (not necessary?)
+     */
     public void StepCell(double divProb) {
         assert G != null;
 
@@ -192,9 +218,12 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
         }
     }
 
+    /**
+     * Moves the cell (head cell) up the VEGF concentration gradient.
+     */
     public void chemotaxis() {
-        // MAX VELOCITY
 
+        CapVelocity(0.3);
         // RATE OF GROWTH
         double CHEMOTAX_RATE = 1;
         double FORCE_SCALER = 1;
@@ -220,25 +249,36 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
             zVel += gradZ / norm * CHEMOTAX_RATE;
         }
 
-        if (norm == 0){
-            xVel += G.rng.Double()-0.5;
-            yVel += G.rng.Double()-0.5;
-            zVel += G.rng.Double()-0.5;
-        }
+//         WHAT TO DO IF NO VEGF (does not work)
+//        if (norm == 0){
+//            xVel += G.rng.Double()-0.5;
+//            yVel += G.rng.Double()-0.5;
+//            zVel += G.rng.Double()-0.5;
+//        }
         // SUM FORCES AND MOVE
-        SumForcesMAP(radius+MAP_RAD,(overlap,other)-> overlap*FORCE_SCALER, new int[] {MAP_PARTICLE, HEPARIN_ISLAND});
+        SumForcesTyped(radius+MAP_RAD,(overlap, other)-> overlap*FORCE_SCALER, new int[] {MAP_PARTICLE, HEPARIN_ISLAND});
+
+        // MAKE VESSELS NOT CLUMP TOGETHER! stay away from each other.
+        SumForcesTyped(10,(overlap, other)-> overlap*FORCE_SCALER, new int[] {HEAD_CELL});
+
+        // max speed
         CapVelocity(0.3);
+
+        // call actual movement.
         ForceMove();
 
         // UPDATE PAST LOCATION
         if (G.In(Xpt()-.01, Ypt()-.01, Zpt()-.01)){
-            G.NewAgentPT(Xpt()-.01, Ypt()-.01, Zpt()-.01).Init(BODY_CELL, radius);
-            pastLocation[0] = Xpt();
-            pastLocation[1] = Ypt();
-            pastLocation[2] = Zpt();
+            G.NewAgentPT(Xpt()-.01, Ypt()-.01, Zpt()-.01).Init_BODY_CELL(new double[]{Xpt(), Ypt(), Zpt()});
+        } else if (G.In(Xpt()+.01, Ypt()+.01, Zpt()-.01)){
+            G.NewAgentPT(Xpt()+.01, Ypt()+.01, Zpt()-.01).Init_BODY_CELL(new double[]{Xpt(), Ypt(), Zpt()});
+
         }
     }
 
+    /**
+     * Calls Heparin microIslands to release VEGF depending on presence of vessels nearby
+     */
     public void stepHeparinIslands() {
         assert G != null;
         if (heparinOn){

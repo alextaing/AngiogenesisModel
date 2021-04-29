@@ -19,7 +19,7 @@ public class grid3D extends AgentGrid3D<agent3D> {
     public static final int SCALE_FACTOR = 2;
 
     // VIEW: what agents to display
-    public static final boolean VIEW_MAP = false;
+    public static final boolean VIEW_MAP = true;
     public static final boolean VIEW_HEP_ISLANDS = true;
     public static final boolean VIEW_MACROPHAGES = true;
     public static final boolean VIEW_VESSELS = true;
@@ -125,7 +125,7 @@ public class grid3D extends AgentGrid3D<agent3D> {
         boolean empty = true;
         for (int i = 0; i < NUM_VESSELS;) {
             empty = true;
-            double[] location = {x*grid.rng.Double(), y*grid.rng.Double(), 0};
+            double[] location = {x*grid.rng.Double(), y*grid.rng.Double(), VESSEL_RADIUS};
             for (agent3D agent : grid.IterAgentsRad(location[0], location[1], location[2], MAP_RAD+VESSEL_RADIUS)) {
                 if (agent.type == MAP_PARTICLE || agent.type == HEPARIN_ISLAND) {
                     empty = false;

@@ -229,13 +229,17 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
         double FORCE_SCALER = 1;
 
         // GRADIENTS
-        if (!G.In(Xpt(), Ypt(), Zpt())){
+        double gradX;
+        double gradY;
+        double gradZ;
+
+        try{
+            gradX=G.VEGF.GradientX(Xpt(), Ypt(), Zpt());
+            gradY=G.VEGF.GradientY(Xpt(), Ypt(), Zpt());
+            gradZ=G.VEGF.GradientZ(Xpt(), Ypt(), Zpt());
+        } catch (ArrayIndexOutOfBoundsException e) {
             return;
         }
-
-        double gradX=G.VEGF.GradientX(Xsq(),Ypt(), Zpt());
-        double gradY=G.VEGF.GradientY(Xsq(),Ypt(), Zpt());
-        double gradZ=G.VEGF.GradientZ(Xpt(), Ypt(), Zpt());
 
         // CALCULATE MOVEMENT
         double norm= Util.Norm(gradX,gradY,gradZ);

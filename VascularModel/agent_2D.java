@@ -4,7 +4,6 @@ ALEX TAING, UNDERGRADUATE
 FALL 2020
 */
 
-
 package VascularModel;
 
 import HAL.GridsAndAgents.AgentSQ2D;
@@ -28,83 +27,86 @@ public class agent_2D extends AgentSQ2D<woundGrid_2D> {
     public static int HEPARIN_MAP_COLOR = Util.RGB(48.0 / 255, 191.0 / 255, 217.0 / 255); // Heparin MAP;
     public static int MACROPHAGE_COLOR = Util.WHITE;
 
-    public static double VASCULAR_VEGF_INTAKE = woundGrid_2D.VASCULAR_VEGF_INTAKE;
+    public static double VEGF_INTAKE = woundGrid_2D.VASCULAR_VEGF_INTAKE;
     public static double VEGF_DIV_PROB = woundGrid_2D.VEGF_DIV_PROB;
     public static double BODY_CELL_BRANCH_PROB = woundGrid_2D.BODY_CELL_BRANCH_PROB;
     public final static double MACROPHAGE_SPAWN_CHANCE = woundGrid_2D.MACROPHAGE_SPAWN_CHANCE;
     public final static int MAX_MACROPHAGE_PER_SPAWN = woundGrid_2D.MAX_MACROPHAGE_PER_SPAWN;
     public final static double MACROPHAGE_FORWARD_TENDENCY = woundGrid_2D.MACROPHAGE_FORWARD_TENDENCY;
-    public final static int ENDO_CELL_TICK_DELAY = woundGrid_2D.ENDO_CELL_TICK_DELAY;
+    public final static int VESSEL_GROWTH_DELAY = woundGrid_2D.VESSEL_GROWTH_DELAY;
     public final static double VEGF_SENSITIVITY = woundGrid_2D.VEGF_SENSITIVITY;
 
     int color;
     int type;
     int length = 0;
+    int target;
+    int elongationLength;
     boolean macrophageBottom;
     boolean macrophageOff;
     boolean vesselBottom;
+    int MAX_ELONGATION_LENGTH = 3;
     boolean arrived = false; // true if the vessel has reached the wound edge
-    public static boolean start_endo = false; // when the endo cells begin to grow after macrophage start
+    public static boolean start_vessel_growth = false; // is set to true when vessels begin to invade (give macrophages a "head start")
 
     /**
      * Gets the location with the highest VEGF concentration within the cell's radius of sight
      *
-     * @return the location of the VEGF
+     * @return returns the location of highest concentration of VEGF (if there are multiple, then it will return a random one)
      */
     public int HighestConcentrationVEGF() {
         assert G != null;
         int VEGF_options = G.MapEmptyHood(G.VEGFHood, Isq()); // gets the cell's range of detecting VEGF
 
-        double maxConcentration = -1;
-        ArrayList<Integer> maxConcentrationLocations = new ArrayList<>();
-        for (int i = 0; i < VEGF_options; i++) { // if there's nearby VEGF...
-            double test_concentration = G.VEGF.Get(G.VEGFHood[i]);
-            if ((test_concentration > maxConcentration) && (test_concentration > VEGF_SENSITIVITY)) {
-                maxConcentration = test_concentration;
-                maxConcentrationLocations.clear();
-                maxConcentrationLocations.add(G.VEGFHood[i]);
-            } else if (test_concentration == maxConcentration) {
-                maxConcentrationLocations.add(G.VEGFHood[i]);
+        double maxConcentration = -1; // holds the max concentration so far (initially -1)
+        ArrayList<Integer> maxConcentrationLocations = new ArrayList<>(); // holds the coordinates for the locations of highest concentration
+        for (int i = 0; i < VEGF_options; i++) { // Iterates through all nearby coordinates
+            double test_concentration = G.VEGF.Get(G.VEGFHood[i]); // gets the concentration at a point (test concentration)
+            if ((test_concentration > maxConcentration) && (test_concentration > VEGF_SENSITIVITY)) { // if the concentration here is larger than the max so far (maxConcentration)
+                maxConcentration = test_concentration; // then set that concentration as the new max
+                maxConcentrationLocations.clear(); // clear the old locations of highest concentration
+                maxConcentrationLocations.add(G.VEGFHood[i]); // add this location to the list of highest concentrations
+            } else if (test_concentration == maxConcentration) { // if the test concentration is equal to the current max concentration
+                maxConcentrationLocations.add(G.VEGFHood[i]); // just add the coordinate to the running list of locations of highest concentration
             }
         }
-        if (maxConcentrationLocations.size() < 1) {
+        if (maxConcentrationLocations.size() < 1) { // if there were no locations of highest concentration at all
             return 0;
-        } else if (maxConcentration <= 0) {
+        } else if (maxConcentration <= 0) { // if max concentration was 0
             return 0;
         }
 
-        return maxConcentrationLocations.get((int) (Math.random() * maxConcentrationLocations.size()));
+        return maxConcentrationLocations.get((int) (Math.random() * maxConcentrationLocations.size())); // return a random one of the locations of highest concentration
     }
 
     /**
-     * Given an int location of a target, will find best location for next cell duplication
+     * Given an int location of a target, this function will find best location for next cell duplication to move towards this location
      *
-     * @param VEGF_location location of nearest VEGF
+     * @param target location of nearest VEGF
      * @return int location to grow closer to target
      */
-    public int HoodClosestToVEGF(int VEGF_location) {
+    public int HoodClosestToTarget(int target) {
 
-        int minDistance = Integer.MAX_VALUE; // gets updated with each location check
+        int minDistance = Integer.MAX_VALUE; // gets updated with each location check (holds the minimum distance of a coordinate to the target)
         ArrayList<Integer> mincoordint = new ArrayList<>(); // closest points that are in the cell neighborhood (as an int)
 
         assert G != null;
         int options = G.MapHood(G.divHood, Isq()); // open areas around cell
 
-        for (int i = 0; i < options; i++) {
-            int MAPcount = 0;
-            for (agent_2D cell : G.IterAgents(G.divHood[i])) {
-                if ((cell.type == MAP_PARTICLE) || (cell.type == HEPARIN_MAP)) {
-                    MAPcount++;
+        for (int i = 0; i < options; i++) { // iterate thorough the open areas
+            int MAPcount = 0; // tally of MAP present
+            for (agent_2D cell : G.IterAgents(G.divHood[i])) { // iterate through all the cells at that coordinate
+                if ((cell.type == MAP_PARTICLE) || (cell.type == HEPARIN_MAP)) { // if there is MAP GEL there
+                    MAPcount++; // then keep track that there was a particle there.
                 }
             }
-            if (MAPcount == 0) {
-                int[] hoodPoint = {G.ItoX(G.divHood[i]), G.ItoY(G.divHood[i])};
+            if (MAPcount == 0) { // If there were no occlusions with MAP particles, then check to see if it is close to the target point
+                int[] hoodPoint = {G.ItoX(G.divHood[i]), G.ItoY(G.divHood[i])}; // This is the location of the point in question (neighborhood point)
 
-                // gets the distance from neighborhood area to target
-                int dist = Math.abs((int) Math.hypot(G.ItoX(VEGF_location) - hoodPoint[0], G.ItoY(VEGF_location) - hoodPoint[1]));
+                // gets the distance from neighborhood point to target
+                int dist = Math.abs((int) Math.hypot(G.ItoX(target) - hoodPoint[0], G.ItoY(target) - hoodPoint[1]));
 
-                // keeps a list of the hood points closest to the VEGF
-                if (dist < minDistance) { // if the new hood point distance is closer than the one before, then...
+                // keeps a list of the neighborhood points closest to the VEGF
+                if (dist < minDistance) { // if the neighborhood point distance is closer than the one before, then...
                     minDistance = dist; // the minimum distance is updated to the new closest distance
                     mincoordint.clear();// the old list is cleared
                     mincoordint.add(G.I(hoodPoint[0], hoodPoint[1])); // and the new closest point is added to the empty list
@@ -137,9 +139,10 @@ public class agent_2D extends AgentSQ2D<woundGrid_2D> {
 //    }
 
     /**
-     * Initializes macrophages
+     * Places macrophages at the wound edges
      */
     public void startMacrophageInvasion() {
+        // TODO rework to number of macrophages spawn per tick instead of spawn chance
         assert G != null;
         if (G.rng.Double() < MACROPHAGE_SPAWN_CHANCE) {
             for (int i = 1; i < MAX_MACROPHAGE_PER_SPAWN * (G.rng.Double()); i++) {
@@ -156,8 +159,10 @@ public class agent_2D extends AgentSQ2D<woundGrid_2D> {
     /**
      * Initializes a cell with color and type
      *
-     * @param type:   type of cell/particle
+     * @param type type of cell/particle
      * @param arrived whether the cell has arrived at the target or not (to be inherited from parent cell)
+     * @param length the current length of the vessel
+     *
      */
     public void Init(int type, boolean arrived, int length) {
 
@@ -166,49 +171,61 @@ public class agent_2D extends AgentSQ2D<woundGrid_2D> {
         this.length = length;
 
         if (type == HEAD_CELL) {
-            this.color = HEAD_CELL_COLOR; // Growing endothelial cells
+            this.color = HEAD_CELL_COLOR; // Growing vessel cells
         } else if (type == BODY_CELL) {
-            this.color = BODY_CELL_COLOR;
+            this.color = BODY_CELL_COLOR; // vessel stalk cells
         } else if (type == MAP_PARTICLE) {
             this.color = MAP_PARTICLE_COLOR; // normal MAP
-        } else if (type == HEPARIN_MAP) { // Inactive Endothelial cells
+        } else if (type == HEPARIN_MAP) {
             this.color = HEPARIN_MAP_COLOR; // Heparin MAP
         } else if (type == MACROPHAGE) {
-            this.color = MACROPHAGE_COLOR;
+            this.color = MACROPHAGE_COLOR; // macrophages
         }
     }
 
     /**
-     * Initializes a cell with color and type
+     * Initializes a vessel cell, but passes on arrival state to next generations.
      *
-     * @param type:   type of cell/particle
+     * @param type type of cell/particle
      * @param arrived whether the cell has arrived at the target or not (to be inherited from parent cell)
+     * @param length the current length of the vessel
+     * @param vesselBottom the edge origin of the vessel (true if bottom, false if top)
      */
-    public void InitVascular(int type, boolean arrived, int length, boolean vesselBottom) {
-
+    public void InitVessel(int type, boolean arrived, int length, boolean vesselBottom) {
         this.arrived = arrived;
         this.type = type;
         this.length = length;
         this.vesselBottom = vesselBottom;
+        this.color = HEAD_CELL_COLOR;
+    }
 
-        if (type == HEAD_CELL) {
-            this.color = HEAD_CELL_COLOR; // Growing endothelial cells
-        } else if (type == BODY_CELL) {
-            this.color = BODY_CELL_COLOR;
-        } else if (type == MAP_PARTICLE) {
-            this.color = MAP_PARTICLE_COLOR; // normal MAP
-        } else if (type == HEPARIN_MAP) { // Inactive Endothelial cells
-            this.color = HEPARIN_MAP_COLOR; // Heparin MAP
-        } else if (type == MACROPHAGE) {
-            this.color = MACROPHAGE_COLOR;
-        }
+    /**
+     * Initializes a cell with color and type,
+     *
+     * @param type type of cell/particle
+     * @param arrived whether the cell has arrived at the target or not (to be inherited from parent cell)
+     * @param length the current length of the vessel
+     * @param vesselBottom the edge origin of the vessel (true if bottom, false if top)
+     * @param target the location where the vessel is growing towards
+     * @param elongationLength the current elongation length of the vessel head cell
+     */
+    public void InitVesselBranching(int type, boolean arrived, int length, boolean vesselBottom, int target, int elongationLength) {
+        this.arrived = arrived;
+        this.type = type;
+        this.length = length;
+        this.vesselBottom = vesselBottom;
+        this.target = target;
+        this.elongationLength = elongationLength;
+        this.color = HEAD_CELL_COLOR;
     }
 
     /**
      * Initializes a cell with color type, and macrophage direction
      *
-     * @param type:   type of cell/particle
-     * @param arrived whether the cell has arrived at the target or not (to be inherited from parent cell)
+     * @param type type of cell/particle
+     * @param arrived N/A for macrophages
+     * @param length N/A for macrophages
+     * @param macrophageBottom the edge origin of the macrophage (true if bottom, false if top)
      */
     public void InitMacrophage(int type, boolean arrived, int length, boolean macrophageBottom) {
 
@@ -217,68 +234,57 @@ public class agent_2D extends AgentSQ2D<woundGrid_2D> {
         this.length = length;
         this.macrophageBottom = macrophageBottom;
         this.macrophageOff = false;
-
-        if (type == HEAD_CELL) {
-            this.color = HEAD_CELL_COLOR; // Growing endothelial cells
-        } else if (type == BODY_CELL) {
-            this.color = BODY_CELL_COLOR;
-        } else if (type == MAP_PARTICLE) {
-            this.color = MAP_PARTICLE_COLOR; // normal MAP
-        } else if (type == HEPARIN_MAP) { // Inactive Endothelial cells
-            this.color = HEPARIN_MAP_COLOR; // Heparin MAP
-        } else if (type == MACROPHAGE) {
-            this.color = MACROPHAGE_COLOR;
-        }
+        this.color = MACROPHAGE_COLOR;
     }
 
-    /**
-     * Divides a cell to a random nearby location, allowing overlap with vessels, but not MAP
-     */
-    public void randomDivideOverlap() {
-        assert G != null;
-        int options = G.MapHood(G.divHood, Isq());
-        ArrayList<Integer> openAreas = new ArrayList<>();
-        for (int i = 0; i < options; i++) {
-            int MAPcount = 0;
-            for (agent_2D cell : G.IterAgents(G.divHood[i])) {
-                if ((cell.type == HEPARIN_MAP) || (cell.type == MAP_PARTICLE)) {
-                    MAPcount++;
-                }
-            }
-            if (MAPcount == 0) {
-                openAreas.add(G.divHood[i]);
-            }
-        }
-        int location = openAreas.get((int) (Math.random() * openAreas.size()));
-        G.NewAgentSQ(location).InitVascular(HEAD_CELL, this.arrived, this.length + 1, this.vesselBottom);
-        InitVascular(BODY_CELL, this.arrived, this.length, this.vesselBottom);
-    }
+//    /**
+//     * Divides a cell to a random nearby location, allowing overlap with vessels, but not MAP
+//     */
+//    public void randomDivideOverlap() {
+//        assert G != null;
+//        int options = G.MapHood(G.divHood, Isq());
+//        ArrayList<Integer> openAreas = new ArrayList<>();
+//        for (int i = 0; i < options; i++) {
+//            int MAPcount = 0;
+//            for (agent_2D cell : G.IterAgents(G.divHood[i])) {
+//                if ((cell.type == HEPARIN_MAP) || (cell.type == MAP_PARTICLE)) {
+//                    MAPcount++;
+//                }
+//            }
+//            if (MAPcount == 0) {
+//                openAreas.add(G.divHood[i]);
+//            }
+//        }
+//        int location = openAreas.get((int) (Math.random() * openAreas.size()));
+//        G.NewAgentSQ(location).InitVessel(HEAD_CELL, this.arrived, this.length + 1, this.vesselBottom);
+//        InitVessel(BODY_CELL, this.arrived, this.length, this.vesselBottom);
+//    }
 
     /**
      * Divides a cell to a random nearby location, NOT allowing overlap with vessels or MAP
      */
     public void randomDivideNotOverlap() {
         assert G != null;
-        int options = MapEmptyHood(G.divHood);
-        if (options >= 1) {
-            G.NewAgentSQ(G.divHood[G.rng.Int(options)]).InitVascular(HEAD_CELL, this.arrived, this.length + 1, this.vesselBottom);
-            InitVascular(BODY_CELL, this.arrived, this.length, this.vesselBottom);
+        int options = MapEmptyHood(G.divHood); // check for empty spots within its division hood
+        if (options >= 1) { // if there is an empty spot, divide into a random one of the empty spots
+            G.NewAgentSQ(G.divHood[G.rng.Int(options)]).InitVessel(HEAD_CELL, this.arrived, this.length + 1, this.vesselBottom);
+            InitVessel(BODY_CELL, this.arrived, this.length, this.vesselBottom);
         }
     }
 
     /**
-     * Checks if the current cell has arrive at the other side of the wound
+     * Checks if the current cell has arrived at the center of the wound
      */
     public void checkIfArrived() {
         if (!arrived) {
             if (type == HEAD_CELL) {
-                if (Ysq() == woundGrid_2D.y / 2) {
-                    this.arrived = true;
+                if (Ysq() == woundGrid_2D.y / 2) { // if the head cell has reached the center of the wound (y/2)
+                    this.arrived = true; // the cell has arrived
                     assert G != null;
-                    double time = (double) G.GetTick() / 6;
-                    int arrivedLength = this.length * 16;
-                    woundGrid_2D.arrivedTime.add(time);
-                    woundGrid_2D.arrivedLengths.add(arrivedLength);
+                    double time = (double) G.GetTick() / 6; // time = tick/6 (hours) TODO make a time scale factor as a starting utility parameter
+                    int arrivedLength = this.length * 16; // length = pixels*16 (microns) TODO make a size scale factor as a starting utility parameter
+                    woundGrid_2D.arrivedTime.add(time); // add the arrival time to arrivedTime list
+                    woundGrid_2D.arrivedLengths.add(arrivedLength); // add the arrival length to the arrivedLengths list
                     System.out.println(woundGrid_2D.arrivedTime.size() + ") " + time + " hours, " + arrivedLength + " microns");
                 }
             }
@@ -290,39 +296,40 @@ public class agent_2D extends AgentSQ2D<woundGrid_2D> {
      */
     public void ConsumeVEGF() {
         assert G != null;
-        if ((G.VEGF.Get(Isq()) != 0) && ((type == HEAD_CELL) || (type == BODY_CELL))) {
-            G.VEGF.Add(Isq(), -VASCULAR_VEGF_INTAKE);
+        if ((G.VEGF.Get(Isq()) != 0) && ((type == HEAD_CELL) || (type == BODY_CELL))) { // Head cells and body cells consume VEGF
+            G.VEGF.Add(Isq(), -VEGF_INTAKE);
         }
     }
 
     /**
-     * Determines whether the endothelial cells should begin dividing, according to ENDO_CELL_TICK_DELAY
+     * Determines whether the endothelial cells should begin dividing, according to VESSEL_GROWTH_DELAY
      */
-    public void CheckEndothelialStart() {
+    public void CheckStartVesselGrowth() {
         assert G != null;
-        if (G.GetTick() == ENDO_CELL_TICK_DELAY) {
-            start_endo = true;
+        if (G.GetTick() == VESSEL_GROWTH_DELAY) { // If the VESSEL_GROWTH_DELAY has passed, then vessels can begin to grow
+            start_vessel_growth = true;
         }
     }
 
     /**
-     * Initializes VEGF concentrations according to macrophage presence
+     * Initializes VEGF concentrations according to macrophage presence (if macrophages contact microIslands, then they
+     * begin to release VEGF)
      */
     public void InitializeVEGF() {
         if (type == HEPARIN_MAP) {
             assert G != null;
-            int occupied = MapOccupiedHood(G.Macrophage_sense_hood);
+            int occupied = MapOccupiedHood(G.Macrophage_sense_hood); // If
             for (int i = 0; i < occupied; i++) {
                 Iterable<agent_2D> agents = G.IterAgents(G.Macrophage_sense_hood[i]);
                 for (agent_2D agent : agents) {
-                    if (macrophageOff) {
+                    if (macrophageOff) { // Heparin microIslands are made of multiple agents.  So if neighboring agents are turned off, then they must be turned off as well.
                         return;
                     }
-                    if ((agent.type == HEAD_CELL) || (agent.type == BODY_CELL) || (agent.macrophageOff) ) {
+                    if ((agent.type == HEAD_CELL) || (agent.type == BODY_CELL) || (agent.macrophageOff) ) { // If there is a body cell or head cell nearby, then turn off
                         macrophageOff = true;
                         return;
                     }
-                    if (agent.type == MACROPHAGE) {
+                    if (agent.type == MACROPHAGE) {  // if there is a macrophage nearby, then release VEGF
                         G.VEGF.Set(Isq(), 1);
                         return;
                     }
@@ -340,7 +347,7 @@ public class agent_2D extends AgentSQ2D<woundGrid_2D> {
             if (G.rng.Double() < BODY_CELL_BRANCH_PROB) {
                 int options2 = MapEmptyHood(G.divHood);
                 if (options2 > 0) {
-                    G.NewAgentSQ(G.divHood[G.rng.Int(options2)]).InitVascular(HEAD_CELL, this.arrived, this.length + 1, this.vesselBottom);
+                    G.NewAgentSQ(G.divHood[G.rng.Int(options2)]).InitVessel(HEAD_CELL, this.arrived, this.length + 1, this.vesselBottom);
                 }
             }
         }
@@ -353,24 +360,26 @@ public class agent_2D extends AgentSQ2D<woundGrid_2D> {
         if (type == MACROPHAGE) {
             assert G != null;
 
-            if ((1 > Xpt()) || (Xpt() > woundGrid_2D.x - 1)) {
+            if ((1 > Xpt()) || (Xpt() > woundGrid_2D.x - 1)) { // if the macrophages move out of bounds, then they are disposed of
                 Dispose();
                 return;
             }
-            if ((1 > Ypt()) || (Ypt() > woundGrid_2D.y - 1)) {
+            if ((1 > Ypt()) || (Ypt() > woundGrid_2D.y - 1)) { // if the macrophages move out of bounds, then they are disposed of
                 Dispose();
                 return;
             }
 
             if (type == MACROPHAGE) {
-                if (G.rng.Double() < MACROPHAGE_FORWARD_TENDENCY) {
-                    if (macrophageBottom) {
+                if (G.rng.Double() < MACROPHAGE_FORWARD_TENDENCY) { // macrophages have a tendency to move towards the opposite wound edge
+                    if (macrophageBottom) { // if the macrophage started at the bottom, then it will tend to move up
                         MoveSQ(G.I((Xpt()), (Ypt() + 1)));
                         return;
-                    } else {
+                    } else { // if the macrophage started at the top, then it will tend to migrate down
                         MoveSQ(G.I((Xpt()), (Ypt() - 1)));
                     }
                 }
+
+                // but it can also move randomly
                 int options = MapHood(G.moveHood);
                 MoveSQ(G.moveHood[(int) (options * Math.random())]);
             }
@@ -391,34 +400,22 @@ public class agent_2D extends AgentSQ2D<woundGrid_2D> {
     }
 
     /**
-     * Divides endothelial cells
+     * Performs simple vessel growth (functional)
      *
      * @param divProb   division probability
      * @param splitProb probability that the vessel will split
      */
     public void EndothelialGrowth(double divProb, double splitProb) {
-        if (type == HEAD_CELL && start_endo) {
-
-            // Check anastomosis
-//            int vesselsAtLocation = 0;
-//            assert G != null;
-//            for (EndothelialCell cell : G.IterAgents(Isq())) {
-//                if (cell.type == HEAD_CELL || cell.type == BODY_CELL){
-//                    vesselsAtLocation++;
-//                }
-//            }
-//            if (vesselsAtLocation >= 2){
-//                HeparinGrid.anastomoses++;
-//            }
+        if (type == HEAD_CELL && start_vessel_growth) {
 
             assert G != null;
             if (G.rng.Double() < divProb) { // if cell chances to divide
-                int TargetLocation = HighestConcentrationVEGF();
-                if (TargetLocation != 0) {
-                    int cellDivLocation = HoodClosestToVEGF(TargetLocation); // take the int position and find the closest neighborhood division spot
+                int TargetLocation = HighestConcentrationVEGF(); // The target location to grow is the location with the hightest concentration of VEGF
+                if (TargetLocation != 0) { // If there is a location of highest VEGF...
+                    int cellDivLocation = HoodClosestToTarget(TargetLocation); // take the position of the target and find the closest neighborhood division spot to the target
                     if (G.PopAt(cellDivLocation) < 5) { // if the area is not too crowded
-                        G.NewAgentSQ(cellDivLocation).InitVascular(HEAD_CELL, this.arrived, this.length + 1, this.vesselBottom); // make a new cell there
-                        InitVascular(BODY_CELL, this.arrived, this.length, this.vesselBottom);
+                        G.NewAgentSQ(cellDivLocation).InitVessel(HEAD_CELL, this.arrived, this.length + 1, this.vesselBottom); // make a new head cell there
+                        InitVessel(BODY_CELL, this.arrived, this.length, this.vesselBottom); // and turn the old cell into a body cell
                     }
                 } else { // supposed to be random movement if there is no VEGF nearby
                     randomDivideNotOverlap();
@@ -432,10 +429,58 @@ public class agent_2D extends AgentSQ2D<woundGrid_2D> {
     }
 
     /**
+     * Performs vessel elongation more analogous to that specified in Mehdizadeh et al. (Does not work well)
+     * @param divProb division probability
+     * @param elongationLength the current length of elongation
+     * @param targetCoord the coordinate that the vessel is attempting to reach (has highest VEGF concentration)
+     */
+    public void VesselElongationGrowth(double divProb, int elongationLength, int targetCoord) {
+        if (type == HEAD_CELL && start_vessel_growth) {
+            assert G != null;
+            int cellDivLocation;
+            if (G.rng.Double() < divProb) { // if cell chances to divide
+                if ((elongationLength >= MAX_ELONGATION_LENGTH) || (Isq() == targetCoord) || (targetCoord == 0)) { // if the vessel
+                                                                // needs to find a new target (i.e. it has reached max elongation,
+                                                                // it has reached a target, or it doesn't have a target...
+                    elongationLength = 0; // reset elongation length
+                    int highestConcentrationCoord = HighestConcentrationVEGF(); // find new target location
+                    cellDivLocation = HoodClosestToTarget(highestConcentrationCoord); // and find the closest adjacent coordinate to this location
+                    if ((highestConcentrationCoord != 0) && (cellDivLocation != 0)){ // If there is a location of highest concentration and there is an open adjacent spot...
+                        if (G.PopAt(cellDivLocation) < 5) { // and if the area is not too crowded
+                            G.NewAgentSQ(cellDivLocation).InitVesselBranching(HEAD_CELL, this.arrived, this.length + 1, this.vesselBottom, highestConcentrationCoord, elongationLength + 1); // make a new cell there
+                            InitVessel(BODY_CELL, this.arrived, this.length, this.vesselBottom); // and make the old cell a body cell
+                        }
+                    } else { // if there was not a location of highest concentration VEGF then divide randomly
+                        randomDivideNotOverlap();
+                    }
+                    // branching
+                    if ((G.VEGF.Get(Isq()) > 0.7) && (G.rng.Double() < 0.1)) { // if there is enough VEGF
+                        int options = MapEmptyHood(G.divHood);
+                        if (options >= 1) { // if there is an open nearby location, then branch there
+                            G.NewAgentSQ(G.divHood[G.rng.Int(options)]).InitVesselBranching(HEAD_CELL, this.arrived, this.length + 1, this.vesselBottom, 0, 0);
+                            InitVessel(BODY_CELL, this.arrived, this.length, this.vesselBottom);
+                        }
+                    }
+                } else {
+                    // if not max length, not at target then it has a target to get to.
+                    cellDivLocation = HoodClosestToTarget(targetCoord); // take the int position and find the closest neighborhood division spot
+                    if (G.PopAt(cellDivLocation) < 5) { // if the area is not too crowded
+                        G.NewAgentSQ(cellDivLocation).InitVesselBranching(HEAD_CELL, this.arrived, this.length + 1, this.vesselBottom, targetCoord, elongationLength + 1); // make a new cell there
+                        InitVessel(BODY_CELL, this.arrived, this.length, this.vesselBottom);
+                        // supposed to be random movement if there is no VEGF nearby
+                    } else {
+                        randomDivideNotOverlap();
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * Steps an agent, can be used on all implemented agents
      *
-     * @param divProb:   chance of division for endothelial cells
-     * @param splitProb: chance of branching for endothelial cells
+     * @param divProb:   chance of division for vessel cells
+     * @param splitProb: chance of branching for vessel cells (HEAD_CELL_BRANCH_PROB)
      */
     public void StepCell(double divProb, double splitProb) {
         divProb = ModifyDivProbNearVEGF(divProb);
@@ -450,21 +495,21 @@ public class agent_2D extends AgentSQ2D<woundGrid_2D> {
         startMacrophageInvasion();
 
         // check if endothelial cells will divide yet
-        CheckEndothelialStart();
+        CheckStartVesselGrowth();
 
         // initialize VEGF
         InitializeVEGF();
-//        if (this.type == HEPARIN_MAP){
-//            G.VEGF.Set(Isq(), 1);
-//        }
 
         // Normal MAP Cells: nothing
-        BodyCellActions();
+        // BodyCellActions();
 
         // Move Macrophages
         MoveMacrophages();
 
         // dividing endothelial cells
         EndothelialGrowth(divProb, splitProb);
+
+        // Branching endothelial cells (Does not work well)
+//        VesselElongationGrowth(divProb, elongationLength, 0);
     }
 }

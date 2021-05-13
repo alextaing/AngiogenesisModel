@@ -19,30 +19,6 @@ import java.nio.file.Path;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 
-/// CURRENT ISSUES:
-
-/// 9) make age of cell? if cell is old, then less likely to grow/branch!!!! let new cells branch, but old ones not
-/// 11) incorporate brush border effect
-/// 12) possible fundamental change in how I approach cell division: tip cell migration, stalk cell elongation, tip cell duplication, repeat
-/// 15) Vessels are running into each other in the beginning!  It looks like they are struggling to follow VEGF?
-/// 16) Rescale agents
-/// 17) make particles turn off when vessels arrive
-/// 18) fix lag: data leak somewhere?
-
-/// THINGS THAT CAN BE VARIED FOR EXPERIMENTATION:
-/// Ratio of MAP to Heparin MAP (HEPARIN_PERCENTAGES)
-/// Radius of VEGF sensing (SIGHT_RADIUS)
-/// Radius of MAP (MAP_RADIUS)
-/// MAP spacing (MAP_SPACING)
-/// VEGF sensitivity (VEGF_SENSITIVITY)
-/// Division chance, when in, and not in, the presence of VEGF (DIV_PROB)
-/// Diffusion rate of VEGF (DIFFUSION_COEFFICIENT)
-/// Chance for endothelial cell to branch (SPLIT_PROB)
-/// Chance for body cell to begin branching (BODY_CELL_BRANCH_PROB)
-/// Percent of spawning branch from injury site (START_VASCULAR_CHANCE)
-/// how much VEGF is consumed by an endothelial cell (VASCULAR_VEGF_INTAKE)
-
-
 // ----------------------------------------------- GRID ZONE -----------------------------------------------------------
 
 
@@ -58,25 +34,26 @@ public class woundGrid_2D extends AgentGrid2D<agent_2D> {
     public final static double[] HEPARIN_PERCENTAGES = new double[]{0.1, 0.05};
 
     // ENDOTHELIAL CELL PARAMETERS
-    public final static int SIGHT_RADIUS = 3; // radius for VEGF sight
+    public final static int SIGHT_RADIUS = 3; // radius to detect VEGF
     public final static double VEGF_SENSITIVITY = 0; // minimum VEGF to attract cell growth
-    public final static double BODY_CELL_BRANCH_PROB = 1.0/1000000; // opportunity for branching of body cell (multiplied by split_prob)
+    public final static double BODY_CELL_BRANCH_PROB = 1.0/1000000; //opportunity for branching of body cell (multiplied by split_prob) TODO REWORK
     public static double VASCULAR_VEGF_INTAKE = 0.1; // how much VEGF is used when a blood vessel is nearby
     public final static double VEGF_DIV_PROB = 1;
     public final static double DIV_PROB = 1; // chance of dividing not in presence of VEGF
-    public final static double SPLIT_PROB = 0.01; // how likely is endothelial cell to branch
-    public final static double START_VASCULAR_CHANCE = 0.05; // percent of initializing an off branch from wound site
+    public final static double HEAD_CELL_BRANCH_PROB = 0.01; // how likely is vessel head cell is to branch
+    public final static double INIT_HOST_HEAD_CELL_PROB = 0.05; // percent of initializing an off branch from wound site TODO REWORK CHANGE TO INT NUMBER OF HEAD CELLS AT INIT
 
     // MACROPHAGE PARAMETERS
-    public final static double MACROPHAGE_SPAWN_CHANCE = 0.00005;
+    public final static double MACROPHAGE_SPAWN_CHANCE = 0.00005; // TODO REWORK TO HOW MANY MACROPHAGES SPAWN PER TICK?
     public final static int MAX_MACROPHAGE_PER_SPAWN = 2;
     public final static double MACROPHAGE_FORWARD_TENDENCY  = 0.3;
 
+    // TODO: Difficulty with Macrophages is converting number of macrophages to spawn per time tick to end goal of concentration (that varies linearly with time)
+
     // MAP GEL PARAMETERS
     public final static int MAP_RADIUS = 3; // radius of MAP particle
-    public final static int MAP_SPACING = 6; // spacing radius from center of MAP particle
+    public final static int MAP_SPACING = 6; // spacing radius between MAP gel centers
     public final static double DIFFUSION_COEFFICIENT = 0.07; // diffusion coefficient
-    //    public final static int MAP_PARTICLES = 800; // number of MAP particles
 
     // MAIN METHOD PARAMETERS
     public final static int x = 150; // x dimension of the window (94)
@@ -84,7 +61,7 @@ public class woundGrid_2D extends AgentGrid2D<agent_2D> {
     public final static int SCALE_FACTOR = 2;
     public final static int TICK_PAUSE = 1;
     public final static int TIMESTEPS = 2000; // how long will the simulation run?
-    public final static int ENDO_CELL_TICK_DELAY = 200;
+    public final static int VESSEL_GROWTH_DELAY = 200;
 
     //------------------------------------------------------------------------------------------------------------------
 
@@ -169,9 +146,9 @@ public class woundGrid_2D extends AgentGrid2D<agent_2D> {
     public void initVascular(woundGrid_2D model, double startVascularChance) {
         for (int i = 0; i < model.Xdim(); i++) {
             if (Math.random() < startVascularChance){
-                model.NewAgentSQ(i,0).InitVascular(agent_2D.HEAD_CELL, false, 0, true);
+                model.NewAgentSQ(i,0).InitVessel(agent_2D.HEAD_CELL, false, 0, true);
             } else {
-                model.NewAgentSQ(i, 0).InitVascular(agent_2D.BODY_CELL, false, 0, true);
+                model.NewAgentSQ(i, 0).InitVessel(agent_2D.BODY_CELL, false, 0, true);
             }
         }
     }
@@ -182,24 +159,28 @@ public class woundGrid_2D extends AgentGrid2D<agent_2D> {
      * @param startVascularChance ratio of head to body vessels in wound edge
      */
     public void initVascularTwoEdges(woundGrid_2D model, double startVascularChance) {
+
+        // Initialize a row of vessel cells at y=0
         for (int i = 0; i < model.Xdim(); i++) {
-            if (Math.random() < startVascularChance){
-                model.NewAgentSQ(i,0).InitVascular(agent_2D.HEAD_CELL, false, 0, true);
+            if (Math.random() < startVascularChance){ // may be head cells or body cells
+                model.NewAgentSQ(i,0).InitVessel(agent_2D.HEAD_CELL, false, 0, true);
             } else {
-                model.NewAgentSQ(i, 0).InitVascular(agent_2D.BODY_CELL, false, 0, true);
+                model.NewAgentSQ(i, 0).InitVessel(agent_2D.BODY_CELL, false, 0, true);
             }
         }
+
+        // Initialize a row of vessel cells at y=yDim-1
         for (int i = 0; i < model.Xdim(); i++) {
-            if (Math.random() < startVascularChance){
-                model.NewAgentSQ(i,model.yDim-1).InitVascular(agent_2D.HEAD_CELL, false, 0, false);
+            if (Math.random() < startVascularChance){ // may be head cells or body cells
+                model.NewAgentSQ(i,model.yDim-1).InitVessel(agent_2D.HEAD_CELL, false, 0, false);
             } else {
-                model.NewAgentSQ(i, model.yDim-1).InitVascular(agent_2D.BODY_CELL, false, 0, false);
+                model.NewAgentSQ(i, model.yDim-1).InitVessel(agent_2D.BODY_CELL, false, 0, false);
             }
         }
     }
 
 //    /**
-//     * Initializes MAP particles as point particles
+//     * Initializes MAP particles as point particles  USED FOR DEBUGGING
 //     * @param model model to draw the particles in
 //     */
 //    public void initMAPPointParticles(HeparinGrid model, double Heparin_Percent){
@@ -220,17 +201,19 @@ public class woundGrid_2D extends AgentGrid2D<agent_2D> {
      * @param model model to draw the particles in
      */
     public void initMAPParticles(woundGrid_2D model, double Heparin_Percent){
+
+        // Iterate through every coordinate in the grid
         for (int i = 0; i < x*y; i++) {
-            int cellType = agent_2D.MAP_PARTICLE;
+            int cellType = agent_2D.MAP_PARTICLE; // assume that it will be a MAP particle
             double chance = Math.random();
-            if (chance < Heparin_Percent){
-                cellType = agent_2D.HEPARIN_MAP;
+            if (chance < Heparin_Percent){ // if chosen probability dictates that it will he a heparin microIsland
+                cellType = agent_2D.HEPARIN_MAP;// then its type will be changed to heparin microIsland
             }
 
-            int occlusions = MapOccupiedHood(MAP_space, i);
+            int occlusions = MapOccupiedHood(MAP_space, i); // Check a radius around the chosen coordinate equal to the radius of the MAP particle with proper spacing
             int open = MapEmptyHood(MAP_rad, i);
-            if (occlusions == 0) {
-                for (int j = 0; j < open; j++){
+            if (occlusions == 0) { // if there are no occlusions
+                for (int j = 0; j < open; j++){ // then make the MAP particle (or Heparin microIsland)
                     if (0 < MAP_rad[j] && MAP_rad[j] < x*y){
                         model.NewAgentSQ(MAP_rad[j]).Init(cellType, false, 0);
                     }
@@ -239,17 +222,17 @@ public class woundGrid_2D extends AgentGrid2D<agent_2D> {
         }
     }
 
-    /**
-     * Can freeze simulation when there is no more growth
-     * @return returns true when growth stops
-     */
-    public boolean checkPopForEnd(){
-        if (Pop() == population){
-            return true;
-        }
-        population = Pop();
-        return false;
-    }
+//    /**
+//     * Can freeze simulation when there is no more growth
+//     * @return returns true when growth stops
+//     */
+//    public boolean checkPopForEnd(){
+//        if (Pop() == population){
+//            return true;
+//        }
+//        population = Pop();
+//        return false;
+//    }
 
     /**
      * Collects the data for export
@@ -258,18 +241,19 @@ public class woundGrid_2D extends AgentGrid2D<agent_2D> {
     public StringBuilder CollectData(){
         StringBuilder dataset = new StringBuilder();
 
-        // endothelial cell, MAP Particle, and Heparin MAP Data
-        StringBuilder endothelial_cell_data = new StringBuilder();
+        // vessel cells, MAP Particle, and Heparin MAP Data
+        StringBuilder vessel_cell_data = new StringBuilder();
 
+        // Collects data about all coordinates occupied by vessels
         for (int x_coord = 0; x_coord < x; x_coord++) {
             for (int y_coord = 0; y_coord < y; y_coord++) {
                 Iterable<agent_2D> agents = IterAgents(x_coord, y_coord);
                 for (agent_2D agent : agents) {
                     if (agent.type == HEAD_CELL || agent.type == BODY_CELL){
-                        if (endothelial_cell_data.length() == 0){
-                            endothelial_cell_data.append("Vessel Coordinates (x-y)");
+                        if (vessel_cell_data.length() == 0){
+                            vessel_cell_data.append("Vessel Coordinates (x-y)");
                         }
-                        endothelial_cell_data.append(", ").append(agent.Xsq()).append("-").append(agent.Ysq());
+                        vessel_cell_data.append(", ").append(agent.Xsq()).append("-").append(agent.Ysq());
                     }
                 }
 
@@ -279,6 +263,7 @@ public class woundGrid_2D extends AgentGrid2D<agent_2D> {
         // time data
         StringBuilder time_data= new StringBuilder();
 
+        // Collects data on arrival times (collected throughout the run in arrivedTime array)
         for (Double Double : arrivedTime) {
             if (time_data.length() == 0){
                 time_data.append("Arrival Time (h)");
@@ -328,7 +313,7 @@ public class woundGrid_2D extends AgentGrid2D<agent_2D> {
             }
         }
 
-        // anastomoses data
+        // anastomoses data  (locations with multiple vessels) //TODO not a perfect implementation
         int anastomoses = 0;
 
         for (int x_coord = 0; x_coord < x; x_coord++) {
@@ -345,7 +330,7 @@ public class woundGrid_2D extends AgentGrid2D<agent_2D> {
                 }
             }
         }
-        return dataset.append(time_data).append("\n").append(arrivalLength_data).append("\n").append(invasionDepth_data).append("\n").append(finalLength_data).append("\n").append(endothelial_cell_data).append("\n").append("Total Anastomoses, ").append(anastomoses);
+        return dataset.append(time_data).append("\n").append(arrivalLength_data).append("\n").append(invasionDepth_data).append("\n").append(finalLength_data).append("\n").append(vessel_cell_data).append("\n").append("Total Anastomoses, ").append(anastomoses);
     }
 
     /**
@@ -418,7 +403,7 @@ public class woundGrid_2D extends AgentGrid2D<agent_2D> {
         GridWindow gridWin = new GridWindow("Endothelial Cells",x, y, SCALE_FACTOR); // window for agents
         GridWindow VEGFWin = new GridWindow("VEGF Diffusion", x, y, SCALE_FACTOR); // window for diffusion
 
-        woundGrid_2D model = new woundGrid_2D(x, y); // instantiate agent grid
+        woundGrid_2D model = new woundGrid_2D(x, y); // initialize agent grid
 
         Path fileName= Path.of("VascularModel\\EndoData");
         File EndoDatafile = new File(String.valueOf(fileName));
@@ -434,14 +419,14 @@ public class woundGrid_2D extends AgentGrid2D<agent_2D> {
             // initialize
             model.ClearData();
 
-            model.initVascularTwoEdges(model, START_VASCULAR_CHANCE);
+            model.initVascularTwoEdges(model, INIT_HOST_HEAD_CELL_PROB);
             model.initMAPParticles(model, HEPARIN_PERCENTAGES[0]);
 
             for (int i = 0; i < TIMESTEPS; i++){
                 // pause
                 gridWin.TickPause(TICK_PAUSE); // how fast the simulation runs
                 // model step
-                model.StepCells(DIV_PROB, SPLIT_PROB); // step the cells
+                model.StepCells(DIV_PROB, HEAD_CELL_BRANCH_PROB); // step the cells
 
                 // draw
                 model.DrawPDE(VEGFWin); // draw the PDE window
@@ -456,22 +441,23 @@ public class woundGrid_2D extends AgentGrid2D<agent_2D> {
             if (EXPORT_DATA){
                 datafile = model.MakeBatchRunFolder();
             }
-            for (double heparinPercentage : HEPARIN_PERCENTAGES) {
-                for (int trial = 0; trial < TRIALS; trial++) {
+
+            for (double heparinPercentage : HEPARIN_PERCENTAGES) { // For each percentage listen in HEPARIN_PERCENTAGES
+                for (int trial = 0; trial < TRIALS; trial++) { // perform the amount of trials specified in TRIALS
                     // initialize
-                    model.ClearData();
-                    model.Reset();
-                    model.ResetTick();
-                    agent_2D.start_endo = false;
-                    model.VEGF = new PDEGrid2D(x, y);
-                    model.initVascularTwoEdges(model, START_VASCULAR_CHANCE);
-                    model.initMAPParticles(model, heparinPercentage);
+                    model.ClearData();  // Clear all data arrays
+                    model.Reset(); // reset the model
+                    model.ResetTick(); // reset the time tick
+                    agent_2D.start_vessel_growth = false; // pause vessel growth
+                    model.VEGF = new PDEGrid2D(x, y); // initialize the diffusion grid
+                    model.initVascularTwoEdges(model, INIT_HOST_HEAD_CELL_PROB); // initialize vessels
+                    model.initMAPParticles(model, heparinPercentage); // initialize MAP particles
 
                     for (int i = 0; i < TIMESTEPS; i++){
                         // pause
                         gridWin.TickPause(TICK_PAUSE); // how fast the simulation runs
                         // model step
-                        model.StepCells(DIV_PROB, SPLIT_PROB); // step the cells
+                        model.StepCells(DIV_PROB, HEAD_CELL_BRANCH_PROB); // step the cells
 
                         // draw
                         model.DrawPDE(VEGFWin); // draw the PDE window

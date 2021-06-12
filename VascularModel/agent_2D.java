@@ -42,7 +42,7 @@ public class agent_2D extends AgentSQ2D<woundGrid_2D> {
     int target;
     int elongationLength;
     boolean macrophageBottom;
-    boolean macrophageOff;
+    boolean stop_release_VEGF;
     boolean vesselBottom;
     int MAX_ELONGATION_LENGTH = 3;
     boolean arrived = false; // true if the vessel has reached the wound edge
@@ -169,6 +169,7 @@ public class agent_2D extends AgentSQ2D<woundGrid_2D> {
         this.arrived = arrived;
         this.type = type;
         this.length = length;
+        this.stop_release_VEGF = false;
 
         if (type == HEAD_CELL) {
             this.color = HEAD_CELL_COLOR; // Growing vessel cells
@@ -233,7 +234,6 @@ public class agent_2D extends AgentSQ2D<woundGrid_2D> {
         this.type = type;
         this.length = length;
         this.macrophageBottom = macrophageBottom;
-        this.macrophageOff = false;
         this.color = MACROPHAGE_COLOR;
     }
 
@@ -322,11 +322,11 @@ public class agent_2D extends AgentSQ2D<woundGrid_2D> {
             for (int i = 0; i < occupied; i++) {
                 Iterable<agent_2D> agents = G.IterAgents(G.Macrophage_sense_hood[i]);
                 for (agent_2D agent : agents) {
-                    if (macrophageOff) { // Heparin microIslands are made of multiple agents.  So if neighboring agents are turned off, then they must be turned off as well.
+                    if (stop_release_VEGF) { // Heparin microIslands are made of multiple agents.  So if neighboring agents are turned off, then they must be turned off as well.
                         return;
                     }
-                    if ((agent.type == HEAD_CELL) || (agent.type == BODY_CELL) || (agent.macrophageOff) ) { // If there is a body cell or head cell nearby, then turn off
-                        macrophageOff = true;
+                    if ((agent.type == HEAD_CELL) || (agent.type == BODY_CELL) || (agent.stop_release_VEGF) ) { // If there is a body cell or head cell nearby, then turn off
+                        stop_release_VEGF = true;
                         return;
                     }
                     if (agent.type == MACROPHAGE) {  // if there is a macrophage nearby, then release VEGF

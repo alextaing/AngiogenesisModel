@@ -28,10 +28,10 @@ public class woundGrid_2D extends AgentGrid2D<agent_2D> {
      * PARAMETERS!
      */
     // BATCH RUNS
-    public final static boolean BATCH_RUN = false;
-    public final static boolean EXPORT_DATA = true;
+    public final static boolean BATCH_RUN = true;
+    public final static boolean EXPORT_DATA = false;
     public final static int TRIALS = 2;
-    public final static double[] HEPARIN_PERCENTAGES = new double[]{0.1, 0.05};
+    public final static double[] HEPARIN_PERCENTAGES = new double[]{0.1, 0.05, 0.2};
 
     // ENDOTHELIAL CELL PARAMETERS
     public final static int SIGHT_RADIUS = 3; // radius to detect VEGF

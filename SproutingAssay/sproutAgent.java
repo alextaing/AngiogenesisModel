@@ -19,20 +19,22 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
     public static int BODY_CELL = 1;
     public static int MAP_PARTICLE = 2;
     public static int HEPARIN_MAP = 3;
-    public static int MACROPHAGE = 4;
+//    public static int MACROPHAGE = 4;
+    public static int HEALTHY_TISSUE = 5;
 
     public static int HEAD_CELL_COLOR = Util.RED;
     public static int BODY_CELL_COLOR = Util.RED;
     public static int MAP_PARTICLE_COLOR = Util.RGB(23.0 / 255, 28.0 / 255, 173.0 / 255); // normal MAP;
     public static int HEPARIN_MAP_COLOR = Util.RGB(48.0 / 255, 191.0 / 255, 217.0 / 255); // Heparin MAP;
-    public static int MACROPHAGE_COLOR = Util.WHITE;
+//    public static int MACROPHAGE_COLOR = Util.WHITE;
+    public static int HEALTHY_TISSUE_COLOR = Util.RGB(178.0/255, 120.0/255, 108.0/255);
 
     public static double VEGF_INTAKE = sproutGrid.VASCULAR_VEGF_INTAKE;
     public static double VEGF_DIV_PROB = sproutGrid.VEGF_DIV_PROB;
     public static double BODY_CELL_BRANCH_PROB = sproutGrid.BODY_CELL_BRANCH_PROB;
-    public final static double MACROPHAGE_SPAWN_CHANCE = sproutGrid.MACROPHAGE_SPAWN_CHANCE;
-    public final static int MAX_MACROPHAGE_PER_SPAWN = sproutGrid.MAX_MACROPHAGE_PER_SPAWN;
-    public final static double MACROPHAGE_FORWARD_TENDENCY = sproutGrid.MACROPHAGE_FORWARD_TENDENCY;
+//    public final static double MACROPHAGE_SPAWN_CHANCE = sproutGrid.MACROPHAGE_SPAWN_CHANCE;
+//    public final static int MAX_MACROPHAGE_PER_SPAWN = sproutGrid.MAX_MACROPHAGE_PER_SPAWN;
+//    public final static double MACROPHAGE_FORWARD_TENDENCY = sproutGrid.MACROPHAGE_FORWARD_TENDENCY;
     public final static int VESSEL_GROWTH_DELAY = sproutGrid.VESSEL_GROWTH_DELAY;
     public final static double VEGF_SENSITIVITY = sproutGrid.VEGF_SENSITIVITY;
 
@@ -41,8 +43,8 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
     int length = 0;
     int target;
     int elongationLength;
-    boolean macrophageBottom;
-    boolean stop_release_VEGF;
+//    boolean macrophageBottom;
+//    boolean stop_release_VEGF = false;
     boolean vesselBottom;
     int MAX_ELONGATION_LENGTH = 3;
     boolean arrived = false; // true if the vessel has reached the wound edge
@@ -138,23 +140,23 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
 //        }
 //    }
 
-    /**
-     * Places macrophages at the wound edges
-     */
-    public void startMacrophageInvasion() {
-        // TODO rework to number of macrophages spawn per tick instead of spawn chance
-        assert G != null;
-        if (G.rng.Double() < MACROPHAGE_SPAWN_CHANCE) {
-            for (int i = 1; i < MAX_MACROPHAGE_PER_SPAWN * (G.rng.Double()); i++) {
-                G.NewAgentPT((sproutGrid.x) * Math.random(), 1).InitMacrophage(MACROPHAGE, false, 0, true); // make a new macrophage there
-            }
-        }
-        if (G.rng.Double() < MACROPHAGE_SPAWN_CHANCE) {
-            for (int i = 1; i < MAX_MACROPHAGE_PER_SPAWN * (G.rng.Double()); i++) {
-                G.NewAgentPT((sproutGrid.x - 1) * Math.random(), sproutGrid.y - 2).InitMacrophage(MACROPHAGE, false, 0, false); // make a new macrophage there
-            }
-        }
-    }
+//    /**
+//     * Places macrophages at the wound edges
+//     */
+//    public void startMacrophageInvasion() {
+//        // TODO rework to number of macrophages spawn per tick instead of spawn chance
+//        assert G != null;
+//        if (G.rng.Double() < MACROPHAGE_SPAWN_CHANCE) {
+//            for (int i = 1; i < MAX_MACROPHAGE_PER_SPAWN * (G.rng.Double()); i++) {
+//                G.NewAgentPT((sproutGrid.x) * Math.random(), 1).InitMacrophage(MACROPHAGE, false, 0, true); // make a new macrophage there
+//            }
+//        }
+//        if (G.rng.Double() < MACROPHAGE_SPAWN_CHANCE) {
+//            for (int i = 1; i < MAX_MACROPHAGE_PER_SPAWN * (G.rng.Double()); i++) {
+//                G.NewAgentPT((sproutGrid.x - 1) * Math.random(), sproutGrid.y - 2).InitMacrophage(MACROPHAGE, false, 0, false); // make a new macrophage there
+//            }
+//        }
+//    }
 
     /**
      * Initializes a cell with color and type
@@ -169,7 +171,7 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
         this.arrived = arrived;
         this.type = type;
         this.length = length;
-        this.stop_release_VEGF = false;
+//        this.stop_release_VEGF = false;
 
         if (type == HEAD_CELL) {
             this.color = HEAD_CELL_COLOR; // Growing vessel cells
@@ -179,8 +181,10 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
             this.color = MAP_PARTICLE_COLOR; // normal MAP
         } else if (type == HEPARIN_MAP) {
             this.color = HEPARIN_MAP_COLOR; // Heparin MAP
-        } else if (type == MACROPHAGE) {
-            this.color = MACROPHAGE_COLOR; // macrophages
+//        } else if (type == MACROPHAGE) {
+//            this.color = MACROPHAGE_COLOR; // macrophages
+        } else if (type == HEALTHY_TISSUE) {
+            this.color = HEALTHY_TISSUE_COLOR;
         }
     }
 
@@ -219,23 +223,23 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
         this.elongationLength = elongationLength;
         this.color = HEAD_CELL_COLOR;
     }
-
-    /**
-     * Initializes a cell with color type, and macrophage direction
-     *
-     * @param type type of cell/particle
-     * @param arrived N/A for macrophages
-     * @param length N/A for macrophages
-     * @param macrophageBottom the edge origin of the macrophage (true if bottom, false if top)
-     */
-    public void InitMacrophage(int type, boolean arrived, int length, boolean macrophageBottom) {
-
-        this.arrived = arrived;
-        this.type = type;
-        this.length = length;
-        this.macrophageBottom = macrophageBottom;
-        this.color = MACROPHAGE_COLOR;
-    }
+//
+//    /**
+//     * Initializes a cell with color type, and macrophage direction
+//     *
+//     * @param type type of cell/particle
+//     * @param arrived N/A for macrophages
+//     * @param length N/A for macrophages
+//     * @param macrophageBottom the edge origin of the macrophage (true if bottom, false if top)
+//     */
+//    public void InitMacrophage(int type, boolean arrived, int length, boolean macrophageBottom) {
+//
+//        this.arrived = arrived;
+//        this.type = type;
+//        this.length = length;
+//        this.macrophageBottom = macrophageBottom;
+//        this.color = MACROPHAGE_COLOR;
+//    }
 
 //    /**
 //     * Divides a cell to a random nearby location, allowing overlap with vessels, but not MAP
@@ -272,24 +276,24 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
         }
     }
 
-    /**
-     * Checks if the current cell has arrived at the center of the wound
-     */
-    public void checkIfArrived() {
-        if (!arrived) {
-            if (type == HEAD_CELL) {
-                if (Ysq() == sproutGrid.y / 2) { // if the head cell has reached the center of the wound (y/2)
-                    this.arrived = true; // the cell has arrived
-                    assert G != null;
-                    double time = (double) G.GetTick() / 6; // time = tick/6 (hours) TODO make a time scale factor as a starting utility parameter
-                    int arrivedLength = this.length * 16; // length = pixels*16 (microns) TODO make a size scale factor as a starting utility parameter
-                    sproutGrid.arrivedTime.add(time); // add the arrival time to arrivedTime list
-                    sproutGrid.arrivedLengths.add(arrivedLength); // add the arrival length to the arrivedLengths list
-                    System.out.println(sproutGrid.arrivedTime.size() + ") " + time + " hours, " + arrivedLength + " microns");
-                }
-            }
-        }
-    }
+//    /**
+//     * Checks if the current cell has arrived at the center of the wound
+//     */
+//    public void checkIfArrived() {
+//        if (!arrived) {
+//            if (type == HEAD_CELL) {
+//                if (Ysq() == sproutGrid.y / 2) { // if the head cell has reached the center of the wound (y/2)
+//                    this.arrived = true; // the cell has arrived
+//                    assert G != null;
+//                    double time = (double) G.GetTick() / 6; // time = tick/6 (hours) TODO make a time scale factor as a starting utility parameter
+//                    int arrivedLength = this.length * 16; // length = pixels*16 (microns) TODO make a size scale factor as a starting utility parameter
+//                    sproutGrid.arrivedTime.add(time); // add the arrival time to arrivedTime list
+//                    sproutGrid.arrivedLengths.add(arrivedLength); // add the arrival length to the arrivedLengths list
+//                    System.out.println(sproutGrid.arrivedTime.size() + ") " + time + " hours, " + arrivedLength + " microns");
+//                }
+//            }
+//        }
+//    }
 
     /**
      * Calls cell to consume appropriate amount of VEGF
@@ -317,24 +321,7 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
      */
     public void InitializeVEGF() {
         if (type == HEPARIN_MAP) {
-            assert G != null;
-            int occupied = MapOccupiedHood(G.Macrophage_sense_hood); // If
-            for (int i = 0; i < occupied; i++) {
-                Iterable<sproutAgent> agents = G.IterAgents(G.Macrophage_sense_hood[i]);
-                for (sproutAgent agent : agents) {
-                    if (stop_release_VEGF) { // Heparin microIslands are made of multiple agents.  So if neighboring agents are turned off, then they must be turned off as well.
-                        return;
-                    }
-                    if ((agent.type == HEAD_CELL) || (agent.type == BODY_CELL) || (agent.stop_release_VEGF) ) { // If there is a body cell or head cell nearby, then turn off
-                        stop_release_VEGF = true;
-                        return;
-                    }
-                    if (agent.type == MACROPHAGE) {  // if there is a macrophage nearby, then release VEGF
-                        G.VEGF.Set(Isq(), 1);
-                        return;
-                    }
-                }
-            }
+            G.VEGF.Set(Isq(), 1);
         }
     }
 
@@ -353,38 +340,38 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
         }
     }
 
-    /**
-     * Moves Macrophages randomly with a bias towards the opposite wound edge
-     */
-    public void MoveMacrophages() {
-        if (type == MACROPHAGE) {
-            assert G != null;
-
-            if ((1 > Xpt()) || (Xpt() > sproutGrid.x - 1)) { // if the macrophages move out of bounds, then they are disposed of
-                Dispose();
-                return;
-            }
-            if ((1 > Ypt()) || (Ypt() > sproutGrid.y - 1)) { // if the macrophages move out of bounds, then they are disposed of
-                Dispose();
-                return;
-            }
-
-            if (type == MACROPHAGE) {
-                if (G.rng.Double() < MACROPHAGE_FORWARD_TENDENCY) { // macrophages have a tendency to move towards the opposite wound edge
-                    if (macrophageBottom) { // if the macrophage started at the bottom, then it will tend to move up
-                        MoveSQ(G.I((Xpt()), (Ypt() + 1)));
-                        return;
-                    } else { // if the macrophage started at the top, then it will tend to migrate down
-                        MoveSQ(G.I((Xpt()), (Ypt() - 1)));
-                    }
-                }
-
-                // but it can also move randomly
-                int options = MapHood(G.moveHood);
-                MoveSQ(G.moveHood[(int) (options * Math.random())]);
-            }
-        }
-    }
+//    /**
+//     * Moves Macrophages randomly with a bias towards the opposite wound edge
+//     */
+//    public void MoveMacrophages() {
+//        if (type == MACROPHAGE) {
+//            assert G != null;
+//
+//            if ((1 > Xpt()) || (Xpt() > sproutGrid.x - 1)) { // if the macrophages move out of bounds, then they are disposed of
+//                Dispose();
+//                return;
+//            }
+//            if ((1 > Ypt()) || (Ypt() > sproutGrid.y - 1)) { // if the macrophages move out of bounds, then they are disposed of
+//                Dispose();
+//                return;
+//            }
+//
+//            if (type == MACROPHAGE) {
+//                if (G.rng.Double() < MACROPHAGE_FORWARD_TENDENCY) { // macrophages have a tendency to move towards the opposite wound edge
+//                    if (macrophageBottom) { // if the macrophage started at the bottom, then it will tend to move up
+//                        MoveSQ(G.I((Xpt()), (Ypt() + 1)));
+//                        return;
+//                    } else { // if the macrophage started at the top, then it will tend to migrate down
+//                        MoveSQ(G.I((Xpt()), (Ypt() - 1)));
+//                    }
+//                }
+//
+//                // but it can also move randomly
+//                int options = MapHood(G.moveHood);
+//                MoveSQ(G.moveHood[(int) (options * Math.random())]);
+//            }
+//        }
+//    }
 
     /**
      * Modifies the division probability of a cell depending on the presence of VEGF
@@ -406,7 +393,7 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
      * @param splitProb probability that the vessel will split
      */
     public void EndothelialGrowth(double divProb, double splitProb) {
-        if (type == HEAD_CELL && start_vessel_growth) {
+        if (type == HEAD_CELL) {
 
             assert G != null;
             if (G.rng.Double() < divProb) { // if cell chances to divide
@@ -414,8 +401,16 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
                 if (TargetLocation != 0) { // If there is a location of highest VEGF...
                     int cellDivLocation = HoodClosestToTarget(TargetLocation); // take the position of the target and find the closest neighborhood division spot to the target
                     if (G.PopAt(cellDivLocation) < 5) { // if the area is not too crowded
-                        G.NewAgentSQ(cellDivLocation).InitVessel(HEAD_CELL, this.arrived, this.length + 1, this.vesselBottom); // make a new head cell there
-                        InitVessel(BODY_CELL, this.arrived, this.length, this.vesselBottom); // and turn the old cell into a body cell
+                        boolean healthy_tissue_absent = true;
+                        for (sproutAgent iterAgent : G.IterAgents(cellDivLocation)) {
+                            if (iterAgent.type == HEALTHY_TISSUE){
+                                healthy_tissue_absent = false;
+                            }
+                        }
+                        if (healthy_tissue_absent){
+                            G.NewAgentSQ(cellDivLocation).InitVessel(HEAD_CELL, this.arrived, this.length + 1, this.vesselBottom); // make a new head cell there
+                            InitVessel(BODY_CELL, this.arrived, this.length, this.vesselBottom); // and turn the old cell into a body cell
+                        }
                     }
                 } else { // supposed to be random movement if there is no VEGF nearby
                     randomDivideNotOverlap();
@@ -486,16 +481,16 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
         divProb = ModifyDivProbNearVEGF(divProb);
 
         // Check if arrived
-        checkIfArrived();
+//        checkIfArrived();
 
         // Eat VEGF
         ConsumeVEGF();
 
         // Make Macrophages
-        startMacrophageInvasion();
+//        startMacrophageInvasion();
 
         // check if endothelial cells will divide yet
-        CheckStartVesselGrowth();
+//        CheckStartVesselGrowth();
 
         // initialize VEGF
         InitializeVEGF();
@@ -504,7 +499,7 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
         // BodyCellActions();
 
         // Move Macrophages
-        MoveMacrophages();
+//        MoveMacrophages();
 
         // dividing endothelial cells
         EndothelialGrowth(divProb, splitProb);

@@ -34,6 +34,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public final static double[] HEPARIN_PERCENTAGES = new double[]{0.1, 0.05, 0.2};
 
     // ENDOTHELIAL CELL PARAMETERS
+    public static final int INITIAL_VESSEL_THICKNESS = 4;
     public final static int SIGHT_RADIUS = 3; // radius to detect VEGF
     public final static double VEGF_SENSITIVITY = 0; // minimum VEGF to attract cell growth
     public final static double BODY_CELL_BRANCH_PROB = 1.0/1000000; //opportunity for branching of body cell (multiplied by split_prob) TODO REWORK
@@ -43,10 +44,10 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public final static double HEAD_CELL_BRANCH_PROB = 0.01; // how likely is vessel head cell is to branch
     public final static double INIT_HOST_HEAD_CELL_PROB = 0.05; // percent of initializing an off branch from wound site TODO REWORK CHANGE TO INT NUMBER OF HEAD CELLS AT INIT
 
-    // MACROPHAGE PARAMETERS
-    public final static double MACROPHAGE_SPAWN_CHANCE = 0.00005; // TODO REWORK TO HOW MANY MACROPHAGES SPAWN PER TICK?
-    public final static int MAX_MACROPHAGE_PER_SPAWN = 2;
-    public final static double MACROPHAGE_FORWARD_TENDENCY  = 0.3;
+//    // MACROPHAGE PARAMETERS
+//    public final static double MACROPHAGE_SPAWN_CHANCE = 0.00005; // TODO REWORK TO HOW MANY MACROPHAGES SPAWN PER TICK?
+//    public final static int MAX_MACROPHAGE_PER_SPAWN = 2;
+//    public final static double MACROPHAGE_FORWARD_TENDENCY  = 0.3;
 
     // TODO: Difficulty with Macrophages is converting number of macrophages to spawn per time tick to end goal of concentration (that varies linearly with time)
 
@@ -56,8 +57,8 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public final static double DIFFUSION_COEFFICIENT = 0.07; // diffusion coefficient
 
     // MAIN METHOD PARAMETERS
-    public final static int x = 200; // x dimension of the window (94)
-    public final static int y = 200; // y dimension of the window 312
+    public final static int x = 626; // x dimension of the window (94)
+    public final static int y = 313; // y dimension of the window 312
     public final static int SCALE_FACTOR = 2;
     public final static int TICK_PAUSE = 1;
     public final static int TIMESTEPS = 2000; // how long will the simulation run?
@@ -69,7 +70,8 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public static int BODY_CELL = sproutAgent.BODY_CELL;
     public static int MAP_PARTICLE = sproutAgent.MAP_PARTICLE;
     public static int HEPARIN_MAP = sproutAgent.HEPARIN_MAP;
-    public static int MACROPHAGE = sproutAgent.MACROPHAGE;
+//    public static int MACROPHAGE = sproutAgent.MACROPHAGE;
+    public static int HEALTHY_TISSUE = sproutAgent.HEALTHY_TISSUE;
 
     public static ArrayList<Double> arrivedTime = new ArrayList<>(); // the time of vessels that have arrived
     public static ArrayList<Integer> arrivedLengths = new ArrayList<>(); // the length of vessels upon arrival
@@ -138,19 +140,18 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
         }
     }
 
+
     /**
-     * Initializes the vessels at wound edge
-     * @param model the model to draw the vessels in
-     * @param startVascularChance ratio of head to body vessels in wound edge
+     * Replaces Dist function, which DOES NOT WORK with initVesselsSemicircle
+     * @param x1 first x coord
+     * @param y1 first y coord
+     * @param x2 second x coord
+     * @param y2 second y coord
+     * @return the integer distance between them
      */
-    public void initVascular(sproutGrid model, double startVascularChance) {
-        for (int i = 0; i < model.Xdim(); i++) {
-            if (Math.random() < startVascularChance){
-                model.NewAgentSQ(i,0).InitVessel(sproutAgent.HEAD_CELL, false, 0, true);
-            } else {
-                model.NewAgentSQ(i, 0).InitVessel(sproutAgent.BODY_CELL, false, 0, true);
-            }
-        }
+    public int distance(double x1, double y1, double x2, double y2){
+        double dist = Math.sqrt((Math.pow((x1-x2), 2)+Math.pow((y1-y2), 2)));
+        return (int)dist;
     }
 
     /**
@@ -158,43 +159,21 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
      * @param model the model to draw the vessels in
      * @param startVascularChance ratio of head to body vessels in wound edge
      */
-    public void initVascularTwoEdges(sproutGrid model, double startVascularChance) {
+    public void initVesselsSemicircle(sproutGrid model, double startVascularChance) {
 
-        // Initialize a row of vessel cells at y=0
-        for (int i = 0; i < model.Xdim(); i++) {
-            if (Math.random() < startVascularChance){ // may be head cells or body cells
-                model.NewAgentSQ(i,0).InitVessel(sproutAgent.HEAD_CELL, false, 0, true);
-            } else {
-                model.NewAgentSQ(i, 0).InitVessel(sproutAgent.BODY_CELL, false, 0, true);
-            }
-        }
-
-        // Initialize a row of vessel cells at y=yDim-1
-        for (int i = 0; i < model.Xdim(); i++) {
-            if (Math.random() < startVascularChance){ // may be head cells or body cells
-                model.NewAgentSQ(i,model.yDim-1).InitVessel(sproutAgent.HEAD_CELL, false, 0, false);
-            } else {
-                model.NewAgentSQ(i, model.yDim-1).InitVessel(sproutAgent.BODY_CELL, false, 0, false);
+        int center = I((Xdim()/2), (Ydim()-1));
+        double rad = Math.min(model.Xdim()/2, model.Ydim());
+        for (int i = 0; i < (model.Xdim()*model.Ydim()); i++) {
+            if (distance(ItoX(i), ItoY(i), ItoX(center), ItoY(center)) < (int)(rad) && distance(ItoX(i), ItoY(i), ItoX(center), ItoY(center)) > (int)(rad-INITIAL_VESSEL_THICKNESS)) {
+                if (Math.random() < startVascularChance) { // may be head cells or body cells
+                    model.NewAgentSQ(i).InitVessel(sproutAgent.HEAD_CELL, false, 0, true);
+                } else {
+                    model.NewAgentSQ(i).InitVessel(sproutAgent.BODY_CELL, false, 0, true);
+                }
             }
         }
     }
 
-//    /**
-//     * Initializes MAP particles as point particles  USED FOR DEBUGGING
-//     * @param model model to draw the particles in
-//     */
-//    public void initMAPPointParticles(HeparinGrid model, double Heparin_Percent){
-//        for (int i = 0; i < MAP_PARTICLES; i++) { // creates the MAPs
-//            int celltype = sproutAgent.MAP_PARTICLE;
-//            double chance = Math.random();
-//            if (chance < Heparin_Percent){
-//                celltype = sproutAgent.HEPARIN_MAP;
-//            }
-//            int randx =(int)(model.xDim*Math.random());
-//            int randy =(int)(model.yDim*Math.random());
-//            model.NewAgentSQ(randx,randy).Init(celltype, false, 0);
-//        }
-//    }
 
     /**
      * Initializes MAP particles as full sized MAP particles
@@ -203,24 +182,47 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public void initMAPParticles(sproutGrid model, double Heparin_Percent){
 
         // Iterate through every coordinate in the grid
+        int center = I((Xdim()/2), (Ydim()-1));
+        double rad = Math.min(model.Xdim()/2, model.Ydim());
         for (int i = 0; i < x*y; i++) {
-            int cellType = sproutAgent.MAP_PARTICLE; // assume that it will be a MAP particle
-            double chance = Math.random();
-            if (chance < Heparin_Percent){ // if chosen probability dictates that it will he a heparin microIsland
-                cellType = sproutAgent.HEPARIN_MAP;// then its type will be changed to heparin microIsland
-            }
+            if (distance(ItoX(i), ItoY(i), ItoX(center), ItoY(center)) < (int)(rad)) {
+                int cellType = sproutAgent.MAP_PARTICLE; // assume that it will be a MAP particle
+                double chance = Math.random();
+                if (chance < Heparin_Percent){ // if chosen probability dictates that it will he a heparin microIsland
+                    cellType = sproutAgent.HEPARIN_MAP;// then its type will be changed to heparin microIsland
+                }
 
-            int occlusions = MapOccupiedHood(MAP_space, i); // Check a radius around the chosen coordinate equal to the radius of the MAP particle with proper spacing
-            int open = MapEmptyHood(MAP_rad, i);
-            if (occlusions == 0) { // if there are no occlusions
-                for (int j = 0; j < open; j++){ // then make the MAP particle (or Heparin microIsland)
-                    if (0 < MAP_rad[j] && MAP_rad[j] < x*y){
-                        model.NewAgentSQ(MAP_rad[j]).Init(cellType, false, 0);
+                int occlusions = MapOccupiedHood(MAP_space, i); // Check a radius around the chosen coordinate equal to the radius of the MAP particle with proper spacing
+                int open = MapEmptyHood(MAP_rad, i);
+                if (occlusions == 0) { // if there are no occlusions
+                    for (int j = 0; j < open; j++){ // then make the MAP particle (or Heparin microIsland)
+                        if (0 < MAP_rad[j] && MAP_rad[j] < x*y){
+                            model.NewAgentSQ(MAP_rad[j]).Init(cellType, false, 0);
+                        }
                     }
                 }
             }
         }
     }
+
+    /**
+     * Initializes the vessels at both side of the wound
+     * @param model the model to draw the vessels in
+     */
+    public void initHealthyTissue(sproutGrid model) {
+
+        int center = I((Xdim()/2), (Ydim()-1));
+        double rad = Math.min(model.Xdim()/2, model.Ydim());
+        double thickness = 4; // Use numbers >= 2
+        for (int i = 0; i < (model.Xdim()*model.Ydim()); i++) {
+            if (distance(ItoX(i), ItoY(i), ItoX(center), ItoY(center)) > (int)(rad-thickness)) {
+                if(PopAt(i) == 0){
+                    model.NewAgentSQ(i).Init(HEALTHY_TISSUE, false, 0);
+                }
+            }
+        }
+    }
+
 
 //    /**
 //     * Can freeze simulation when there is no more growth
@@ -419,7 +421,8 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
             // initialize
             model.ClearData();
 
-            model.initVascularTwoEdges(model, INIT_HOST_HEAD_CELL_PROB);
+            model.initVesselsSemicircle(model, INIT_HOST_HEAD_CELL_PROB);
+            model.initHealthyTissue(model);
             model.initMAPParticles(model, HEPARIN_PERCENTAGES[0]);
 
             for (int i = 0; i < TIMESTEPS; i++){
@@ -448,9 +451,9 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
                     model.ClearData();  // Clear all data arrays
                     model.Reset(); // reset the model
                     model.ResetTick(); // reset the time tick
-                    sproutAgent.start_vessel_growth = false; // pause vessel growth
                     model.VEGF = new PDEGrid2D(x, y); // initialize the diffusion grid
-                    model.initVascularTwoEdges(model, INIT_HOST_HEAD_CELL_PROB); // initialize vessels
+                    model.initVesselsSemicircle(model, INIT_HOST_HEAD_CELL_PROB); // initialize vessels
+                    model.initHealthyTissue(model);
                     model.initMAPParticles(model, heparinPercentage); // initialize MAP particles
 
                     for (int i = 0; i < TIMESTEPS; i++){

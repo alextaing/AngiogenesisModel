@@ -159,7 +159,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
      * @param model the model to draw the vessels in
      * @param startVascularChance ratio of head to body vessels in wound edge
      */
-    public void initVesselsSemicircle(sproutGrid model, double startVascularChance) {
+    public void initVesselsCircleCulture(sproutGrid model, double startVascularChance) {
 
         int center = I((Xdim()/2), (Ydim()/2));
         for (int i = 0; i < (model.Xdim()*model.Ydim()); i++) {
@@ -418,7 +418,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
             // initialize
             model.ClearData();
 
-            model.initVesselsSemicircle(model, INIT_HOST_HEAD_CELL_PROB);
+            model.initVesselsCircleCulture(model, INIT_HOST_HEAD_CELL_PROB);
 //            model.initHealthyTissue(model);
             model.initMAPParticles(model, HEPARIN_PERCENTAGES[0]);
 
@@ -449,7 +449,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
                     model.Reset(); // reset the model
                     model.ResetTick(); // reset the time tick
                     model.VEGF = new PDEGrid2D(x, y); // initialize the diffusion grid
-                    model.initVesselsSemicircle(model, INIT_HOST_HEAD_CELL_PROB); // initialize vessels
+                    model.initVesselsCircleCulture(model, INIT_HOST_HEAD_CELL_PROB); // initialize vessels
 //                    model.initHealthyTissue(model);
                     model.initMAPParticles(model, heparinPercentage); // initialize MAP particles
 

@@ -393,31 +393,32 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
      * @param splitProb probability that the vessel will split
      */
     public void EndothelialGrowth(double divProb, double splitProb) {
-        if (type == HEAD_CELL) {
-
-            assert G != null;
-            if (G.rng.Double() < divProb) { // if cell chances to divide
-                int TargetLocation = HighestConcentrationVEGF(); // The target location to grow is the location with the hightest concentration of VEGF
-                if (TargetLocation != 0) { // If there is a location of highest VEGF...
-                    int cellDivLocation = HoodClosestToTarget(TargetLocation); // take the position of the target and find the closest neighborhood division spot to the target
-                    if (G.PopAt(cellDivLocation) < 5) { // if the area is not too crowded
-                        boolean healthy_tissue_absent = true;
-                        for (sproutAgent iterAgent : G.IterAgents(cellDivLocation)) {
-                            if (iterAgent.type == HEALTHY_TISSUE){
-                                healthy_tissue_absent = false;
+        if (start_vessel_growth){
+            if (type == HEAD_CELL) {
+                assert G != null;
+                if (G.rng.Double() < divProb) { // if cell chances to divide
+                    int TargetLocation = HighestConcentrationVEGF(); // The target location to grow is the location with the hightest concentration of VEGF
+                    if (TargetLocation != 0) { // If there is a location of highest VEGF...
+                        int cellDivLocation = HoodClosestToTarget(TargetLocation); // take the position of the target and find the closest neighborhood division spot to the target
+                        if (G.PopAt(cellDivLocation) < 5) { // if the area is not too crowded
+                            boolean healthy_tissue_absent = true;
+                            for (sproutAgent iterAgent : G.IterAgents(cellDivLocation)) {
+                                if (iterAgent.type == HEALTHY_TISSUE){
+                                    healthy_tissue_absent = false;
+                                }
+                            }
+                            if (healthy_tissue_absent){
+                                G.NewAgentSQ(cellDivLocation).InitVessel(HEAD_CELL, this.arrived, this.length + 1, this.vesselBottom); // make a new head cell there
+                                InitVessel(BODY_CELL, this.arrived, this.length, this.vesselBottom); // and turn the old cell into a body cell
                             }
                         }
-                        if (healthy_tissue_absent){
-                            G.NewAgentSQ(cellDivLocation).InitVessel(HEAD_CELL, this.arrived, this.length + 1, this.vesselBottom); // make a new head cell there
-                            InitVessel(BODY_CELL, this.arrived, this.length, this.vesselBottom); // and turn the old cell into a body cell
-                        }
+                    } else { // supposed to be random movement if there is no VEGF nearby
+                        randomDivideNotOverlap();
                     }
-                } else { // supposed to be random movement if there is no VEGF nearby
-                    randomDivideNotOverlap();
-                }
 
-                if (G.rng.Double() < splitProb) { // maybe branch off
-                    randomDivideNotOverlap();
+                    if (G.rng.Double() < splitProb) { // maybe branch off
+                        randomDivideNotOverlap();
+                    }
                 }
             }
         }
@@ -489,9 +490,6 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
         // Make Macrophages
 //        startMacrophageInvasion();
 
-        // check if endothelial cells will divide yet
-//        CheckStartVesselGrowth();
-
         // initialize VEGF
         InitializeVEGF();
 
@@ -501,9 +499,13 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
         // Move Macrophages
 //        MoveMacrophages();
 
+
+        // check if endothelial cells will divide yet
+        CheckStartVesselGrowth();
+
         // dividing endothelial cells
         EndothelialGrowth(divProb, splitProb);
-
+        
         // Branching endothelial cells (Does not work well)
 //        VesselElongationGrowth(divProb, elongationLength, 0);
     }

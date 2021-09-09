@@ -28,7 +28,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
      * PARAMETERS!
      */
     // BATCH RUNS
-    public final static boolean BATCH_RUN = true;
+    public final static boolean BATCH_RUN = false;
     public final static boolean EXPORT_DATA = false;
     public final static int TRIALS = 2;
     public final static double[] HEPARIN_PERCENTAGES = new double[]{0.1, 0.05, 0.2};
@@ -44,12 +44,13 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public final static double HEAD_CELL_BRANCH_PROB = 0.01; // how likely is vessel head cell is to branch
     public final static double INIT_HOST_HEAD_CELL_PROB = 0.05; // percent of initializing an off branch from wound site TODO REWORK CHANGE TO INT NUMBER OF HEAD CELLS AT INIT
 
-//    // MACROPHAGE PARAMETERS
-//    public final static double MACROPHAGE_SPAWN_CHANCE = 0.00005; // TODO REWORK TO HOW MANY MACROPHAGES SPAWN PER TICK?
-//    public final static int MAX_MACROPHAGE_PER_SPAWN = 2;
-//    public final static double MACROPHAGE_FORWARD_TENDENCY  = 0.3;
+    // MIGRATION RATE
+    public final static double LOW_MIGRATION_RATE = 4; // one growth per 4 ticks
+    public final static double LOW_MED_MIGRATION_RATE_THRESHOLD = 0.33; // 0-0.33 GF concentration
+    public final static double MED_MIGRATION_RATE = 3; // one growth per 3 ticks
+    public final static double MED_HIGH_MIGRATION_RATE_THRESHOLD = 0.66; // 0-0.33 GF concentration
+    public final static double HIGH_MIGRATION_RATE = 2; // one growth per 2 ticks
 
-    // TODO: Difficulty with Macrophages is converting number of macrophages to spawn per time tick to end goal of concentration (that varies linearly with time)
 
     // MAP GEL PARAMETERS
     public final static int MAP_RADIUS = 3; // radius of MAP particle
@@ -70,23 +71,17 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public static int BODY_CELL = sproutAgent.BODY_CELL;
     public static int MAP_PARTICLE = sproutAgent.MAP_PARTICLE;
     public static int HEPARIN_MAP = sproutAgent.HEPARIN_MAP;
-//    public static int MACROPHAGE = sproutAgent.MACROPHAGE;
-    public static int HEALTHY_TISSUE = sproutAgent.HEALTHY_TISSUE;
 
     public static ArrayList<Double> arrivedTime = new ArrayList<>(); // the time of vessels that have arrived
     public static ArrayList<Integer> arrivedLengths = new ArrayList<>(); // the length of vessels upon arrival
     public static ArrayList<Integer> finalLengths = new ArrayList<>(); // the length of vessels at end of run
     public static ArrayList<Integer> invasionDepth = new ArrayList<>(); // vessel invasion depth
-//    public static int anastomoses;
-    public static int population;
 
 
     Rand rng = new Rand();
     int[] divHood = Util.VonNeumannHood(false); // neighborhood for division
-    int[] moveHood = Util.VonNeumannHood(false); // neighborhood for division
     int[] VEGFHood = Util.CircleHood(false, SIGHT_RADIUS); // how far can you see VEGF
     int[] MAP_rad = Util.CircleHood(true, MAP_RADIUS); // radius of MAP particles
-    int[] Macrophage_sense_hood = Util.CircleHood(true, MAP_RADIUS+1);
     int[] MAP_space = Util.CircleHood(true, MAP_SPACING); // "cushion" between MAP particles
 
     PDEGrid2D VEGF; // Initialize PDE Grid
@@ -142,7 +137,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
 
 
     /**
-     * Replaces Dist function, which DOES NOT WORK with initVesselsSemicircle
+     * Replaces Dist function, which DOES NOT WORK with initVesselsCircleCulture
      * @param x1 first x coord
      * @param y1 first y coord
      * @param x2 second x coord
@@ -165,9 +160,9 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
         for (int i = 0; i < (model.Xdim()*model.Ydim()); i++) {
             if (distance(ItoX(i), ItoY(i), ItoX(center), ItoY(center)) < (int)(CULTURE_RADIUS)) {
                 if (Math.random() < startVascularChance) { // may be head cells or body cells
-                    model.NewAgentSQ(i).InitVessel(sproutAgent.HEAD_CELL, false, 0, true);
+                    model.NewAgentSQ(i).InitVessel(sproutAgent.HEAD_CELL, 0);
                 } else {
-                    model.NewAgentSQ(i).InitVessel(sproutAgent.BODY_CELL, false, 0, true);
+                    model.NewAgentSQ(i).InitVessel(sproutAgent.BODY_CELL, 0);
                 }
             }
         }
@@ -195,43 +190,12 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
             if (occlusions == 0) { // if there are no occlusions
                 for (int j = 0; j < open; j++){ // then make the MAP particle (or Heparin microIsland)
                     if (0 < MAP_rad[j] && MAP_rad[j] < x*y){
-                        model.NewAgentSQ(MAP_rad[j]).Init(cellType, false, 0);
+                        model.NewAgentSQ(MAP_rad[j]).Init(cellType);
                     }
                 }
             }
         }
     }
-
-    /**
-     * Initializes the vessels at both side of the wound
-     * @param model the model to draw the vessels in
-     */
-    public void initHealthyTissue(sproutGrid model) {
-
-        int center = I((Xdim()/2), (Ydim()-1));
-        double rad = Math.min(model.Xdim()/2, model.Ydim());
-        double thickness = 4; // Use numbers >= 2
-        for (int i = 0; i < (model.Xdim()*model.Ydim()); i++) {
-            if (distance(ItoX(i), ItoY(i), ItoX(center), ItoY(center)) > (int)(rad-thickness)) {
-                if(PopAt(i) == 0){
-                    model.NewAgentSQ(i).Init(HEALTHY_TISSUE, false, 0);
-                }
-            }
-        }
-    }
-
-
-//    /**
-//     * Can freeze simulation when there is no more growth
-//     * @return returns true when growth stops
-//     */
-//    public boolean checkPopForEnd(){
-//        if (Pop() == population){
-//            return true;
-//        }
-//        population = Pop();
-//        return false;
-//    }
 
     /**
      * Collects the data for export
@@ -291,11 +255,11 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
         for (sproutAgent cell : IterAgentsRect(0,0,x,y)){
             if (cell.type == HEAD_CELL) {
                 int invDepth;
-                if (cell.vesselBottom){
-                    invDepth = cell.Ysq()*16;
-                } else{
+//                if (cell.vesselBottom){
+//                    invDepth = cell.Ysq()*16;
+//                } else{
                     invDepth = (y-cell.Ysq())*16;
-                }
+//                }
 
                 if (invasionDepth_data.length() == 0){
                     invasionDepth_data.append("Invasion depth (microns)");
@@ -311,8 +275,6 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
                 finalLength_data.append(", ").append(finalLength);
             }
         }
-
-        // anastomoses data  (locations with multiple vessels) //TODO not a perfect implementation
         int anastomoses = 0;
 
         for (int x_coord = 0; x_coord < x; x_coord++) {
@@ -369,7 +331,6 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
         arrivedLengths.clear();
         finalLengths.clear();
         invasionDepth.clear();
-//        anastomoses = 0;
     }
 
     /**

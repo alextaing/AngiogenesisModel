@@ -35,19 +35,19 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
 
     // ENDOTHELIAL CELL PARAMETERS
     public static final int CULTURE_RADIUS = 20;
-    public final static int SIGHT_RADIUS = 3; // radius to detect VEGF
+    public final static int SIGHT_RADIUS = 2; // radius to detect VEGF
     public final static double VEGF_SENSITIVITY = 0; // minimum VEGF to attract cell growth
     public static double VASCULAR_VEGF_INTAKE = 0.1; // how much VEGF is used when a blood vessel is nearby
     public final static double INIT_HOST_HEAD_CELL_PROB = 0.05; // percent of initializing an off branch from wound site TODO REWORK CHANGE TO INT NUMBER OF HEAD CELLS AT INIT
-    public static final int MAX_ELONGATION_LENGTH = 3;
+    public static final int MAX_ELONGATION_LENGTH = 4;
 
     // MIGRATION RATE
     public final static double MIGRATION_RATE = 3;
 
 
     // MAP GEL PARAMETERS
-    public final static int MAP_RADIUS = 3; // radius of MAP particle
-    public final static int MAP_SPACING = 6; // spacing radius between MAP gel centers
+    public final static int MAP_RADIUS = 4; // radius of MAP particle
+    public final static int MAP_SPACING = 10; // spacing radius between MAP gel centers
     public final static double DIFFUSION_COEFFICIENT = 0.07; // diffusion coefficient
 
     // MAIN METHOD PARAMETERS

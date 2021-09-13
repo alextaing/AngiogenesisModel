@@ -29,11 +29,18 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
     public final static int VESSEL_GROWTH_DELAY = sproutGrid.VESSEL_GROWTH_DELAY;
     public final static double VEGF_SENSITIVITY = sproutGrid.VEGF_SENSITIVITY;
 
+    public final static double LOW_BRANCHING_PROBABILITY= sproutGrid.LOW_BRANCHING_PROBABILITY;
+    public final static double LOW_MED_VEGF_THRESHOLD = sproutGrid.LOW_MED_VEGF_THRESHOLD;
+    public final static double MED_BRANCHING_PROBABILITY= sproutGrid.MED_BRANCHING_PROBABILITY;
+    public final static double MED_HIGH_VEGF_THRESHOLD = sproutGrid.MED_HIGH_VEGF_THRESHOLD;
+    public final static double HIGH_BRANCHING_PROBABILITY= sproutGrid.HIGH_BRANCHING_PROBABILITY;
+
     int color;
     int type;
     int length = 0;
     int target;
     double migration_rate = sproutGrid.MIGRATION_RATE;
+    double branching_probability;
     int since_last_elongation;
     int elongationLength;
     int MAX_ELONGATION_LENGTH = sproutGrid.MAX_ELONGATION_LENGTH;
@@ -197,7 +204,10 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
     public void ConsumeVEGF() {
         assert G != null;
         if ((G.VEGF.Get(Isq()) != 0) && ((type == HEAD_CELL) || (type == BODY_CELL))) { // Head cells and body cells consume VEGF
-            G.VEGF.Add(Isq(), -VEGF_INTAKE);
+            G.VEGF.Add(Isq(), -(G.VEGF.Get(Isq()))*VEGF_INTAKE);
+            if (G.VEGF.Get(Isq()) < 0){
+                G.VEGF.Set(Isq(), 0);
+            }
         }
     }
 
@@ -216,7 +226,11 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
      */
     public void InitializeVEGF() {
         if (type == HEPARIN_MAP) {
-            G.VEGF.Set(Isq(), 1);
+            double toAdd = (1 - G.VEGF.Get(Isq())) * 0.5;
+            G.VEGF.Add(Isq(), (toAdd));
+            if ((G.VEGF.Get(Isq())) > 1) {
+                G.VEGF.Set(Isq(), 1);
+            }
         }
     }
 
@@ -319,7 +333,8 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
                     randomDivideNotOverlap();
                 }
                 // branching
-                if ((G.VEGF.Get(Isq()) > 0.7) && (G.rng.Double() < 0.1)) { // if there is enough VEGF
+//                if ((G.VEGF.Get(Isq()) > 0.7) && (G.rng.Double() < 0.1)) { // if there is enough VEGF
+                if(G.rng.Double() < branching_probability){
                     int options = MapEmptyHood(G.divHood);
                     if (options >= 1) { // if there is an open nearby location, then branch there
                         G.NewAgentSQ(G.divHood[G.rng.Int(options)]).InitVesselMigrationRate(HEAD_CELL, this.length + 1, 0, 0, 0);
@@ -341,6 +356,16 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
     }
 
 
+    public void CalculateBranchingProbability(){
+        if (G.VEGF.Get(Isq()) < LOW_MED_VEGF_THRESHOLD){
+            branching_probability = LOW_BRANCHING_PROBABILITY;
+        } else if (G.VEGF.Get(Isq()) < MED_HIGH_VEGF_THRESHOLD){
+            branching_probability = MED_BRANCHING_PROBABILITY;
+        } else if (G.VEGF.Get(Isq()) > HIGH_BRANCHING_PROBABILITY){
+            branching_probability = HIGH_BRANCHING_PROBABILITY;
+        }
+    }
+
     /**
      * Steps an agent, can be used on all implemented agents
      */
@@ -352,8 +377,9 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
         // initialize VEGF
         InitializeVEGF();
 
-        // Normal MAP Cells: nothing
-        // BodyCellActions();
+
+        // calculate branching probability
+        CalculateBranchingProbability();
 
         // check if endothelial cells will divide yet
         CheckStartVesselGrowth();

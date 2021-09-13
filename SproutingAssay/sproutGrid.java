@@ -43,13 +43,10 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public final static double DIV_PROB = 1; // chance of dividing not in presence of VEGF
     public final static double HEAD_CELL_BRANCH_PROB = 0.01; // how likely is vessel head cell is to branch
     public final static double INIT_HOST_HEAD_CELL_PROB = 0.05; // percent of initializing an off branch from wound site TODO REWORK CHANGE TO INT NUMBER OF HEAD CELLS AT INIT
+    public static final int MAX_ELONGATION_LENGTH = 3;
 
     // MIGRATION RATE
-    public final static double LOW_MIGRATION_RATE = 4; // one growth per 4 ticks
-    public final static double LOW_MED_MIGRATION_RATE_THRESHOLD = 0.33; // 0-0.33 GF concentration
-    public final static double MED_MIGRATION_RATE = 3; // one growth per 3 ticks
-    public final static double MED_HIGH_MIGRATION_RATE_THRESHOLD = 0.66; // 0-0.33 GF concentration
-    public final static double HIGH_MIGRATION_RATE = 2; // one growth per 2 ticks
+    public final static double MIGRATION_RATE = 3;
 
 
     // MAP GEL PARAMETERS

@@ -31,20 +31,14 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
     public final static int VESSEL_GROWTH_DELAY = sproutGrid.VESSEL_GROWTH_DELAY;
     public final static double VEGF_SENSITIVITY = sproutGrid.VEGF_SENSITIVITY;
 
-    public static final double LOW_MIGRATION_RATE = sproutGrid.LOW_MIGRATION_RATE;
-    public static final double LOW_MED_MIGRATION_RATE_THRESHOLD = sproutGrid.LOW_MED_MIGRATION_RATE_THRESHOLD;
-    public static final double MED_MIGRATION_RATE = sproutGrid.MED_MIGRATION_RATE;
-    public static final double MED_HIGH_MIGRATION_RATE_THRESHOLD = sproutGrid.MED_HIGH_MIGRATION_RATE_THRESHOLD;
-    public static final double HIGH_MIGRATION_RATE = sproutGrid.HIGH_MIGRATION_RATE;
-
     int color;
     int type;
     int length = 0;
     int target;
-    double migration_rate;
+    double migration_rate = sproutGrid.MIGRATION_RATE;
     int since_last_elongation;
     int elongationLength;
-    int MAX_ELONGATION_LENGTH = 3;
+    int MAX_ELONGATION_LENGTH = sproutGrid.MAX_ELONGATION_LENGTH;
     public static boolean start_vessel_growth = false; // is set to true when vessels begin to invade
 
     /**
@@ -357,31 +351,18 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
         }
     }
 
-    public void GrowthRate(){
-        if (type == HEAD_CELL){
-            assert G != null;
-            if (G.VEGF.Get(Isq()) < LOW_MIGRATION_RATE){
-                migration_rate = LOW_MIGRATION_RATE;
-            } else if ((LOW_MIGRATION_RATE < G.VEGF.Get(Isq()))&&(G.VEGF.Get(Isq()) < HIGH_MIGRATION_RATE)){
-                migration_rate = MED_MIGRATION_RATE;
-            } else if (HIGH_MIGRATION_RATE < G.VEGF.Get(Isq())) {
-                migration_rate = HIGH_MIGRATION_RATE;
-            }
-        }
-    }
-
     /**
      * Performs vessel elongation more analogous to that specified in Mehdizadeh et al. Functions by growth rate instead of DivProb
      * @param elongationLength the current length of elongation
      * @param targetCoord the coordinate that the vessel is attempting to reach (has highest VEGF concentration)
      */
     public void VesselGrowthByRate(int elongationLength, int targetCoord) {
+        assert G != null;
         if (since_last_elongation < migration_rate){
             since_last_elongation += 1;
             return;
         }
         if (type == HEAD_CELL && start_vessel_growth) {
-            assert G != null;
             int cellDivLocation;
             if ((elongationLength >= MAX_ELONGATION_LENGTH) || (Isq() == targetCoord) || (targetCoord == 0)) { // if the vessel
                 // needs to find a new target (i.e. it has reached max elongation,
@@ -440,9 +421,6 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
 
         // check if endothelial cells will divide yet
         CheckStartVesselGrowth();
-
-        // Determine Growth Rate
-        GrowthRate();
 
         // Branch
         VesselGrowthByRate(0, 0);

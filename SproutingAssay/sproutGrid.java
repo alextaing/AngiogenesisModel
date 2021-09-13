@@ -37,11 +37,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public static final int CULTURE_RADIUS = 20;
     public final static int SIGHT_RADIUS = 3; // radius to detect VEGF
     public final static double VEGF_SENSITIVITY = 0; // minimum VEGF to attract cell growth
-    public final static double BODY_CELL_BRANCH_PROB = 1.0/1000000; //opportunity for branching of body cell (multiplied by split_prob) TODO REWORK
     public static double VASCULAR_VEGF_INTAKE = 0.1; // how much VEGF is used when a blood vessel is nearby
-    public final static double VEGF_DIV_PROB = 1;
-    public final static double DIV_PROB = 1; // chance of dividing not in presence of VEGF
-    public final static double HEAD_CELL_BRANCH_PROB = 0.01; // how likely is vessel head cell is to branch
     public final static double INIT_HOST_HEAD_CELL_PROB = 0.05; // percent of initializing an off branch from wound site TODO REWORK CHANGE TO INT NUMBER OF HEAD CELLS AT INIT
     public static final int MAX_ELONGATION_LENGTH = 3;
 
@@ -95,12 +91,10 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
 
     /**
      * Steps all cells
-     * @param divProb probability of division
-     * @param splitProb probability of branching
      */
-    public void StepCells(double divProb, double splitProb){ // steps all the cells
+    public void StepCells(){ // steps all the cells
         for (sproutAgent endoCell : this) {
-            endoCell.StepCell(divProb, splitProb);
+            endoCell.StepCell();
         }
         IncTick();
         VEGF.Diffusion(DIFFUSION_COEFFICIENT);
@@ -384,7 +378,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
                 // pause
                 gridWin.TickPause(TICK_PAUSE); // how fast the simulation runs
                 // model step
-                model.StepCells(DIV_PROB, HEAD_CELL_BRANCH_PROB); // step the cells
+                model.StepCells(); // step the cells
 
                 // draw
                 model.DrawPDE(VEGFWin); // draw the PDE window
@@ -415,7 +409,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
                         // pause
                         gridWin.TickPause(TICK_PAUSE); // how fast the simulation runs
                         // model step
-                        model.StepCells(DIV_PROB, HEAD_CELL_BRANCH_PROB); // step the cells
+                        model.StepCells(); // step the cells
 
                         // draw
                         model.DrawPDE(VEGFWin); // draw the PDE window

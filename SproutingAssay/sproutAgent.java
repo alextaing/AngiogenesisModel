@@ -235,87 +235,16 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
     }
 
     /**
-     * Performs simple vessel growth (functional)
-     * @param splitProb probability that the vessel will split
-     */
-    public void EndothelialGrowth(double splitProb) {
-        if (start_vessel_growth){
-            if (type == HEAD_CELL) {
-                assert G != null;
-                int TargetLocation = HighestConcentrationVEGF(); // The target location to grow is the location with the hightest concentration of VEGF
-                if (TargetLocation != 0) { // If there is a location of highest VEGF...
-                    int cellDivLocation = HoodClosestToTarget(TargetLocation); // take the position of the target and find the closest neighborhood division spot to the target
-                    if (G.PopAt(cellDivLocation) < 5) { // if the area is not too crowded
-                        G.NewAgentSQ(cellDivLocation).InitVessel(HEAD_CELL, this.length + 1); // make a new head cell there
-                        InitVessel(BODY_CELL, this.length); // and turn the old cell into a body cell
-                    }
-                } else { // supposed to be random movement if there is no VEGF nearby
-                    randomDivideNotOverlap();
-                }
-
-                if (G.rng.Double() < splitProb) { // maybe branch off
-                    randomDivideNotOverlap();
-                }
-            }
-        }
-    }
-
-    /**
-     * Performs vessel elongation more analogous to that specified in Mehdizadeh et al. (Does not work well)
-     * @param elongationLength the current length of elongation
-     * @param targetCoord the coordinate that the vessel is attempting to reach (has highest VEGF concentration)
-     */
-    public void VesselElongationGrowth(int elongationLength, int targetCoord) {
-        if (type == HEAD_CELL && start_vessel_growth) {
-            assert G != null;
-            int cellDivLocation;
-            if ((elongationLength >= MAX_ELONGATION_LENGTH) || (Isq() == targetCoord) || (targetCoord == 0)) { // if the vessel
-                                                            // needs to find a new target (i.e. it has reached max elongation,
-                                                            // it has reached a target, or it doesn't have a target...
-                elongationLength = 0; // reset elongation length
-                int highestConcentrationCoord = HighestConcentrationVEGF(); // find new target location
-                cellDivLocation = HoodClosestToTarget(highestConcentrationCoord); // and find the closest adjacent coordinate to this location
-                if ((highestConcentrationCoord != 0) && (cellDivLocation != 0)){ // If there is a location of highest concentration and there is an open adjacent spot...
-                    if (G.PopAt(cellDivLocation) < 5) { // and if the area is not too crowded
-                        G.NewAgentSQ(cellDivLocation).InitVesselBranching(HEAD_CELL, this.length + 1, highestConcentrationCoord, elongationLength + 1); // make a new cell there
-                        InitVessel(BODY_CELL, this.length); // and make the old cell a body cell
-                    }
-                } else { // if there was not a location of highest concentration VEGF then divide randomly
-                    randomDivideNotOverlap();
-                }
-                // branching
-                if ((G.VEGF.Get(Isq()) > 0.7) && (G.rng.Double() < 0.1)) { // if there is enough VEGF
-                    int options = MapEmptyHood(G.divHood);
-                    if (options >= 1) { // if there is an open nearby location, then branch there
-                        G.NewAgentSQ(G.divHood[G.rng.Int(options)]).InitVesselBranching(HEAD_CELL, this.length + 1, 0, 0);
-                        InitVessel(BODY_CELL, this.length);
-                    }
-                }
-            } else {
-                // if not max length, not at target then it has a target to get to.
-                cellDivLocation = HoodClosestToTarget(targetCoord); // take the int position and find the closest neighborhood division spot
-                if (G.PopAt(cellDivLocation) < 5) { // if the area is not too crowded
-                    G.NewAgentSQ(cellDivLocation).InitVesselBranching(HEAD_CELL, this.length + 1, targetCoord, elongationLength + 1); // make a new cell there
-                    InitVessel(BODY_CELL, this.length);
-                    // supposed to be random movement if there is no VEGF nearby
-                } else {
-                    randomDivideNotOverlap();
-                }
-            }
-        }
-    }
-
-    /**
      * Performs vessel elongation more analogous to that specified in Mehdizadeh et al. Functions by growth rate
      * @param elongationLength the current length of elongation
      * @param targetCoord the coordinate that the vessel is attempting to reach (has highest VEGF concentration)
      */
     public void VesselGrowthByRate(int elongationLength, int targetCoord) {
         assert G != null;
-        if (G.VEGF.Get(Isq()) < VEGF_SENSITIVITY) {
+        if (G.VEGF.Get(Isq()) < VEGF_SENSITIVITY) { // if there's not enough VEGF, stay quiescent
             return;
         }
-        if (since_last_elongation < migration_rate){
+        if (since_last_elongation < migration_rate){ // if it's not yet time to migrate, then don't migrate yet.
             since_last_elongation += 1;
             return;
         }
@@ -328,15 +257,11 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
                 int highestConcentrationCoord = HighestConcentrationVEGF(); // find new target location
                 cellDivLocation = HoodClosestToTarget(highestConcentrationCoord); // and find the closest adjacent coordinate to this location
                 if ((highestConcentrationCoord != 0) && (cellDivLocation != 0)){ // If there is a location of highest concentration and there is an open adjacent spot...
-                    if (G.PopAt(cellDivLocation) < 5) { // and if the area is not too crowded
-                        G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, highestConcentrationCoord, elongationLength + 1, since_last_elongation); // make a new cell there
-                        InitVessel(BODY_CELL, this.length); // and make the old cell a body cell
-                    }
-                } else { // if there was not a location of highest concentration VEGF then divide randomly
-                    randomDivideNotOverlap();
+                    highestConcentrationCoord = CalculateTargetTwiceAsFar(highestConcentrationCoord);
+                    G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, highestConcentrationCoord, elongationLength + 1, since_last_elongation); // make a new cell there
+                    InitVessel(BODY_CELL, this.length); // and make the old cell a body cell
                 }
                 // branching
-//                if ((G.VEGF.Get(Isq()) > 0.7) && (G.rng.Double() < 0.1)) { // if there is enough VEGF
                 if(G.rng.Double() < branching_probability){
                     int options = MapEmptyHood(G.divHood);
                     if (options >= 1) { // if there is an open nearby location, then branch there
@@ -347,17 +272,23 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
             } else {
                 // if not max length, not at target then it has a target to get to.
                 cellDivLocation = HoodClosestToTarget(targetCoord); // take the int position and find the closest neighborhood division spot
-                if (G.PopAt(cellDivLocation) < 5) { // if the area is not too crowded
-                    G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, targetCoord, elongationLength + 1, since_last_elongation); // make a new cell there
-                    InitVessel(BODY_CELL, this.length);
-                    // supposed to be random movement if there is no VEGF nearby
-                } else {
-                    randomDivideNotOverlap();
-                }
+                G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, targetCoord, elongationLength + 1, since_last_elongation); // make a new cell there
+                InitVessel(BODY_CELL, this.length);
             }
         }
     }
 
+    public int CalculateTargetTwiceAsFar(int targetCoord){
+        assert G != null;
+        int target_x = G.ItoX(targetCoord);
+        int target_y = G.ItoY(targetCoord);
+        int current_x = Xsq();
+        int current_y = Ysq();
+        int scaled_vector_x = 4*(target_x-current_x);
+        int scaled_vector_y = 4*(target_y-current_y);
+        int[] new_target = {(scaled_vector_x+current_x),(scaled_vector_y+current_y)};
+        return G.I(new_target[0], new_target[1]);
+    }
 
     public void CalculateBranchingProbability(){
         if (G.VEGF.Get(Isq()) < LOW_MED_VEGF_THRESHOLD){
@@ -389,6 +320,5 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
 
         // Elongate
         VesselGrowthByRate(0, 0);
-//        VesselElongationGrowth(elongationLength, 0);
     }
 }

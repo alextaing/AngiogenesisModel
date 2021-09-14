@@ -113,7 +113,6 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public sproutGrid(int x, int y) { // Constructor for the agent grid
         super(x, y, sproutAgent.class);
         VEGF = new PDEGrid2D(x, y);
-
     }
 
     /**

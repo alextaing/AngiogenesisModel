@@ -312,6 +312,9 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
      */
     public void VesselGrowthByRate(int elongationLength, int targetCoord) {
         assert G != null;
+        if (G.VEGF.Get(Isq()) < VEGF_SENSITIVITY) {
+            return;
+        }
         if (since_last_elongation < migration_rate){
             since_last_elongation += 1;
             return;

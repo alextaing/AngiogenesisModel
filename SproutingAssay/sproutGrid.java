@@ -9,6 +9,7 @@ package SproutingAssay;
 import HAL.GridsAndAgents.AgentGrid2D;
 import HAL.GridsAndAgents.PDEGrid2D;
 import HAL.Gui.GridWindow;
+import HAL.Gui.TickTimer;
 import HAL.Rand;
 import HAL.Util;
 
@@ -33,35 +34,52 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public final static int TRIALS = 2;
     public final static double[] HEPARIN_PERCENTAGES = new double[]{0.1, 0.05, 0.2};
 
-    // ENDOTHELIAL CELL PARAMETERS
-    public static final int CULTURE_RADIUS = 20;
-    public final static int SIGHT_RADIUS = 3; // radius to detect VEGF
-    public final static double VEGF_SENSITIVITY = 0; // minimum VEGF to attract cell growth
-    public static double VASCULAR_VEGF_INTAKE = 0.33; // percent of how much of the present VEGF is consumed when a blood vessel is nearby
-    public final static double INIT_HOST_HEAD_CELL_PROB = 0.05; // percent of initializing an off branch from wound site TODO REWORK CHANGE TO INT NUMBER OF HEAD CELLS AT INIT
-    public static final int MAX_ELONGATION_LENGTH = 4;
+    // VESSEL PARAMETERS
+    public static final int CULTURE_RADIUS_MICRONS = 200; // microns
+    public final static int SIGHT_RADIUS_MICRONS = 20; // microns
+    public static final int MAX_ELONGATION_LENGTH_MICRONS = 40; // microns
+    public final static double VEGF_SENSITIVITY = 0.001; // minimum VEGF to attract cell growth
+    public static double VASCULAR_VEGF_INTAKE = 0.25; // percent of how much of the present VEGF is consumed when a blood vessel is nearby
+    public final static double INIT_HOST_HEAD_CELL_PROB = 0.05; // probability of initializing an off branch from wound site
 
     // MIGRATION RATE AND BRANCHING PROBABILITY
-    public final static double MIGRATION_RATE = 3;
-    public final static double LOW_BRANCHING_PROBABILITY= 0.0001;
+    public final static double MIGRATION_RATE_MICRONS_PER_HOUR = 30; // microns/hr
+    public final static double LOW_BRANCHING_PROBABILITY= 0.0001; // probability of branching while VEGF is under LOW_MED_VEGF_THRESHOLD
     public final static double LOW_MED_VEGF_THRESHOLD = 0.33;
-    public final static double MED_BRANCHING_PROBABILITY= 0.001;
+    public final static double MED_BRANCHING_PROBABILITY= 0.001; // probability of branching while VEGF is between LOW_MED_VEGF_THRESHOLD and MED_HIGH_VEGF_THRESHOLD
     public final static double MED_HIGH_VEGF_THRESHOLD = 0.66;
-    public final static double HIGH_BRANCHING_PROBABILITY= 0.01;
-
+    public final static double HIGH_BRANCHING_PROBABILITY= 0.01; // probability of branching while VEGF is above MED_HIGH_VEGF_THRESHOLD
 
     // MAP GEL PARAMETERS
-    public final static int MAP_RADIUS = 3; // radius of MAP particle
-    public final static int MAP_SPACING = 6; // spacing radius between MAP gel centers
-    public final static double DIFFUSION_COEFFICIENT = 0.07; // diffusion coefficient
+    public final static int MAP_RADIUS_MICRONS = 30; // microns
+    public final static int MAP_SPACING_MICRONS = 20; // microns
 
     // MAIN METHOD PARAMETERS
-    public final static int x = 200; // x dimension of the window (94)
-    public final static int y = 200; // y dimension of the window 312
+    public final static int x_MICRONS = 2000; // microns
+    public final static int y_MICRONS = 2000; // microns
     public final static int SCALE_FACTOR = 2;
     public final static int TICK_PAUSE = 1;
     public final static int TIMESTEPS = 2000; // how long will the simulation run?
     public final static int VESSEL_GROWTH_DELAY = 200;
+
+    // DIFFUSION
+    public final static double DIFFUSION_COEFFICIENT = 0.07; // diffusion coefficient
+
+    // CONVERSIONS
+    public final static int MICRONS_PER_MM = 10; // 1 pixel represents 10 microns
+    public final static int TICKS_PER_HOUR = 60; // 1 tick represents 1 minute
+    // vessels
+    public static final int CULTURE_RADIUS = CULTURE_RADIUS_MICRONS/MICRONS_PER_MM;
+    public final static int SIGHT_RADIUS = SIGHT_RADIUS_MICRONS/MICRONS_PER_MM; // radius to detect VEGF
+    public static final int MAX_ELONGATION_LENGTH = MAX_ELONGATION_LENGTH_MICRONS/MICRONS_PER_MM;
+    public final static double MIGRATION_RATE = 1/((MIGRATION_RATE_MICRONS_PER_HOUR/MICRONS_PER_MM)*(1/(double)TICKS_PER_HOUR)); // convert to "elongate every ___ ticks"
+
+    // particles
+    public final static int MAP_RADIUS = MAP_RADIUS_MICRONS/MICRONS_PER_MM; // radius of MAP particle
+    public final static int MAP_SPACING = MAP_RADIUS_MICRONS/MICRONS_PER_MM + MAP_SPACING_MICRONS/MICRONS_PER_MM; // spacing radius between MAP gel centers
+    // grid
+    public final static int x = x_MICRONS/MICRONS_PER_MM; // microns
+    public final static int y = y_MICRONS/MICRONS_PER_MM; // microns
 
     //------------------------------------------------------------------------------------------------------------------
 

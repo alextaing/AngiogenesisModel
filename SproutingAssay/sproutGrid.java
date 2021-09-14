@@ -9,7 +9,6 @@ package SproutingAssay;
 import HAL.GridsAndAgents.AgentGrid2D;
 import HAL.GridsAndAgents.PDEGrid2D;
 import HAL.Gui.GridWindow;
-import HAL.Gui.TickTimer;
 import HAL.Rand;
 import HAL.Util;
 
@@ -39,11 +38,11 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public final static int SIGHT_RADIUS_MICRONS = 20; // microns
     public static final int MAX_ELONGATION_LENGTH_MICRONS = 40; // microns
     public final static double VEGF_SENSITIVITY = 0.001; // minimum VEGF to attract cell growth
-    public static double VASCULAR_VEGF_INTAKE = 0.25; // percent of how much of the present VEGF is consumed when a blood vessel is nearby
-    public final static double INIT_HOST_HEAD_CELL_PROB = 0.05; // probability of initializing an off branch from wound site
+    public static double VESSEL_VEGF_INTAKE = 0.25; // percent of how much of the present VEGF is consumed when a blood vessel is nearby
+    public final static double INITIAL_PERCENT_HEAD_CELLS = 0.05; // probability of initializing an off branch from wound site
 
     // MIGRATION RATE AND BRANCHING PROBABILITY
-    public final static double MIGRATION_RATE_MICRONS_PER_HOUR = 30; // microns/hr
+    public final static int MIGRATION_RATE_MICRONS_PER_HOUR = 30; // microns/hr
     public final static double LOW_BRANCHING_PROBABILITY= 0.0001; // probability of branching while VEGF is under LOW_MED_VEGF_THRESHOLD
     public final static double LOW_MED_VEGF_THRESHOLD = 0.33;
     public final static double MED_BRANCHING_PROBABILITY= 0.001; // probability of branching while VEGF is between LOW_MED_VEGF_THRESHOLD and MED_HIGH_VEGF_THRESHOLD
@@ -59,8 +58,8 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public final static int y_MICRONS = 2000; // microns
     public final static int SCALE_FACTOR = 2;
     public final static int TICK_PAUSE = 1;
-    public final static int TIMESTEPS = 2000; // how long will the simulation run?
-    public final static int VESSEL_GROWTH_DELAY = 200;
+    public final static int RUNTIME_HOURS = 24; // how long will the simulation run?
+    public final static double VESSEL_GROWTH_DELAY_HOURS = 1;
 
     // DIFFUSION
     public final static double DIFFUSION_COEFFICIENT = 0.07; // diffusion coefficient
@@ -72,14 +71,18 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public static final int CULTURE_RADIUS = CULTURE_RADIUS_MICRONS/MICRONS_PER_MM;
     public final static int SIGHT_RADIUS = SIGHT_RADIUS_MICRONS/MICRONS_PER_MM; // radius to detect VEGF
     public static final int MAX_ELONGATION_LENGTH = MAX_ELONGATION_LENGTH_MICRONS/MICRONS_PER_MM;
-    public final static double MIGRATION_RATE = 1/((MIGRATION_RATE_MICRONS_PER_HOUR/MICRONS_PER_MM)*(1/(double)TICKS_PER_HOUR)); // convert to "elongate every ___ ticks"
-
+    public final static double MIGRATION_RATE = 1/((MIGRATION_RATE_MICRONS_PER_HOUR/(double)MICRONS_PER_MM)*(1/(double)TICKS_PER_HOUR)); // convert to "elongate every ___ ticks"
     // particles
     public final static int MAP_RADIUS = MAP_RADIUS_MICRONS/MICRONS_PER_MM; // radius of MAP particle
     public final static int MAP_SPACING = MAP_RADIUS_MICRONS/MICRONS_PER_MM + MAP_SPACING_MICRONS/MICRONS_PER_MM; // spacing radius between MAP gel centers
     // grid
     public final static int x = x_MICRONS/MICRONS_PER_MM; // microns
     public final static int y = y_MICRONS/MICRONS_PER_MM; // microns
+    // runtime
+    public final static int TIMESTEPS = RUNTIME_HOURS*TICKS_PER_HOUR; // how long will the simulation run?
+    public final static int VESSEL_GROWTH_DELAY = (int)VESSEL_GROWTH_DELAY_HOURS*TICKS_PER_HOUR;
+
+
 
     //------------------------------------------------------------------------------------------------------------------
 
@@ -394,7 +397,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
             // initialize
             model.ClearData();
 
-            model.initVesselsCircleCulture(model, INIT_HOST_HEAD_CELL_PROB);
+            model.initVesselsCircleCulture(model, INITIAL_PERCENT_HEAD_CELLS);
 //            model.initHealthyTissue(model);
             model.initMAPParticles(model, HEPARIN_PERCENTAGES[0]);
 
@@ -425,7 +428,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
                     model.Reset(); // reset the model
                     model.ResetTick(); // reset the time tick
                     model.VEGF = new PDEGrid2D(x, y); // initialize the diffusion grid
-                    model.initVesselsCircleCulture(model, INIT_HOST_HEAD_CELL_PROB); // initialize vessels
+                    model.initVesselsCircleCulture(model, INITIAL_PERCENT_HEAD_CELLS); // initialize vessels
 //                    model.initHealthyTissue(model);
                     model.initMAPParticles(model, heparinPercentage); // initialize MAP particles
 

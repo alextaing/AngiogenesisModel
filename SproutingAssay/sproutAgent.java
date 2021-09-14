@@ -25,7 +25,7 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
     public static int MAP_PARTICLE_COLOR = Util.RGB(23.0 / 255, 28.0 / 255, 173.0 / 255); // normal MAP;
     public static int HEPARIN_MAP_COLOR = Util.RGB(48.0 / 255, 191.0 / 255, 217.0 / 255); // Heparin MAP;
 
-    public static double VEGF_INTAKE = sproutGrid.VASCULAR_VEGF_INTAKE;
+    public static double VESSEL_VEGF_INTAKE = sproutGrid.VESSEL_VEGF_INTAKE;
     public final static int VESSEL_GROWTH_DELAY = sproutGrid.VESSEL_GROWTH_DELAY;
     public final static double VEGF_SENSITIVITY = sproutGrid.VEGF_SENSITIVITY;
 
@@ -204,7 +204,7 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
     public void ConsumeVEGF() {
         assert G != null;
         if ((G.VEGF.Get(Isq()) != 0) && ((type == HEAD_CELL) || (type == BODY_CELL))) { // Head cells and body cells consume VEGF
-            G.VEGF.Add(Isq(), -(G.VEGF.Get(Isq()))*VEGF_INTAKE);
+            G.VEGF.Add(Isq(), -(G.VEGF.Get(Isq()))* VESSEL_VEGF_INTAKE);
             if (G.VEGF.Get(Isq()) < 0){
                 G.VEGF.Set(Isq(), 0);
             }

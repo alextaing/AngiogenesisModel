@@ -28,30 +28,30 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
      * PARAMETERS!
      */
     // BATCH RUNS
-    public final static boolean BATCH_RUN = false;
+    public final static boolean BATCH_RUN = true;
     public final static boolean EXPORT_DATA = false;
-    public final static int TRIALS = 2;
-    public final static double[] HEPARIN_PERCENTAGES = new double[]{0.1, 0.05, 0.2};
+    public final static int TRIALS = 3;
+    public final static double[] HEPARIN_PERCENTAGES = new double[]{0.1, 0.15, 0.2, 0.5};
 
     // VESSEL PARAMETERS
     public static final int CULTURE_RADIUS_MICRONS = 200; // microns
     public final static int SIGHT_RADIUS_MICRONS = 20; // microns
     public static final int MAX_ELONGATION_LENGTH_MICRONS = 40; // microns
-    public final static double VEGF_SENSITIVITY = 0.001; // minimum VEGF to attract cell growth
-    public static double VESSEL_VEGF_INTAKE = 0.25; // percent of how much of the present VEGF is consumed when a blood vessel is nearby
+    public final static double VEGF_SENSITIVITY = 0.0001; // minimum VEGF to attract cell growth
+    public static double VESSEL_VEGF_INTAKE = 0.1; // percent of how much of the present VEGF is consumed when a blood vessel is nearby
     public final static double INITIAL_PERCENT_HEAD_CELLS = 0.05; // probability of initializing an off branch from wound site
 
     // MIGRATION RATE AND BRANCHING PROBABILITY
     public final static int MIGRATION_RATE_MICRONS_PER_HOUR = 30; // microns/hr
-    public final static double LOW_BRANCHING_PROBABILITY= 0.0001; // probability of branching while VEGF is under LOW_MED_VEGF_THRESHOLD
+    public final static double LOW_BRANCHING_PROBABILITY= 0.4; // probability of branching while VEGF is under LOW_MED_VEGF_THRESHOLD
     public final static double LOW_MED_VEGF_THRESHOLD = 0.33;
-    public final static double MED_BRANCHING_PROBABILITY= 0.001; // probability of branching while VEGF is between LOW_MED_VEGF_THRESHOLD and MED_HIGH_VEGF_THRESHOLD
+    public final static double MED_BRANCHING_PROBABILITY= 0.6; // probability of branching while VEGF is between LOW_MED_VEGF_THRESHOLD and MED_HIGH_VEGF_THRESHOLD
     public final static double MED_HIGH_VEGF_THRESHOLD = 0.66;
-    public final static double HIGH_BRANCHING_PROBABILITY= 0.01; // probability of branching while VEGF is above MED_HIGH_VEGF_THRESHOLD
+    public final static double HIGH_BRANCHING_PROBABILITY= 0.9; // probability of branching while VEGF is above MED_HIGH_VEGF_THRESHOLD
 
     // MAP GEL PARAMETERS
     public final static int MAP_RADIUS_MICRONS = 30; // microns
-    public final static int MAP_SPACING_MICRONS = 20; // microns
+    public final static int MAP_SPACING_MICRONS = 30; // microns
 
     // MAIN METHOD PARAMETERS
     public final static int x_MICRONS = 2000; // microns

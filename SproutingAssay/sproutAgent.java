@@ -28,12 +28,14 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
     public static double VESSEL_VEGF_INTAKE = sproutGrid.VESSEL_VEGF_INTAKE;
     public final static int VESSEL_GROWTH_DELAY = sproutGrid.VESSEL_GROWTH_DELAY;
     public final static double VEGF_SENSITIVITY = sproutGrid.VEGF_SENSITIVITY;
+    public final static int MAX_ELONGATION_LENGTH = sproutGrid.MAX_ELONGATION_LENGTH;
 
     public final static double LOW_BRANCHING_PROBABILITY= sproutGrid.LOW_BRANCHING_PROBABILITY;
     public final static double LOW_MED_VEGF_THRESHOLD = sproutGrid.LOW_MED_VEGF_THRESHOLD;
     public final static double MED_BRANCHING_PROBABILITY= sproutGrid.MED_BRANCHING_PROBABILITY;
     public final static double MED_HIGH_VEGF_THRESHOLD = sproutGrid.MED_HIGH_VEGF_THRESHOLD;
     public final static double HIGH_BRANCHING_PROBABILITY= sproutGrid.HIGH_BRANCHING_PROBABILITY;
+
 
     int color;
     int type;
@@ -43,8 +45,9 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
     double branching_probability;
     int since_last_elongation;
     int elongationLength;
-    int MAX_ELONGATION_LENGTH = sproutGrid.MAX_ELONGATION_LENGTH;
-    public static boolean start_vessel_growth = false; // is set to true when vessels begin to invade
+    public static boolean start_vessel_growth = true; // is set to true when vessels begin to invade
+    boolean heparin_particle_release_VEGF = true;
+
 
     /**
      * Gets the location with the highest VEGF concentration within the cell's radius of sight
@@ -95,11 +98,11 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
             for (sproutAgent cell : G.IterAgents(G.divHood[i])) { // iterate through all the cells at that coordinate
                 if ((cell.type == MAP_PARTICLE) || (cell.type == HEPARIN_MAP)) { // if there is MAP GEL there
                     MAPcount++; // then keep track that there was a particle there.
+                    break;
                 }
             }
             if (MAPcount == 0) { // If there were no occlusions with MAP particles, then check to see if it is close to the target point
-                int[] hoodPoint = {G.ItoX(G.divHood[i]), G.ItoY(G.divHood[i])}; // This is the location of the point in question (neighborhood point)
-
+                int[] hoodPoint = {G.ItoX(G.divHood[i]), G.ItoY(G.divHood[i])}; // This is the location of the point in question (neighborhood point
                 // gets the distance from neighborhood point to target
                 int dist = Math.abs((int) Math.hypot(G.ItoX(target) - hoodPoint[0], G.ItoY(target) - hoodPoint[1]));
 
@@ -137,6 +140,7 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
             this.color = MAP_PARTICLE_COLOR; // normal MAP
         } else if (type == HEPARIN_MAP) {
             this.color = HEPARIN_MAP_COLOR; // Heparin MAP
+            this.heparin_particle_release_VEGF = true;
         }
     }
 
@@ -160,22 +164,6 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
      * @param target the location where the vessel is growing towards
      * @param elongationLength the current elongation length of the vessel head cell
      */
-    public void InitVesselBranching(int type, int length, int target, int elongationLength) {
-        this.type = type;
-        this.length = length;
-        this.target = target;
-        this.elongationLength = elongationLength;
-        this.color = HEAD_CELL_COLOR;
-    }
-
-    /**
-     * Initializes a cell with color and type,
-     *
-     * @param type type of cell/particle
-     * @param length the current length of the vessel
-     * @param target the location where the vessel is growing towards
-     * @param elongationLength the current elongation length of the vessel head cell
-     */
     public void InitVesselMigrationRate(int type, int length, int target, int elongationLength, int since_last_elongation) {
         this.type = type;
         this.length = length;
@@ -185,25 +173,12 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
         this.color = HEAD_CELL_COLOR;
     }
 
-
-    /**
-     * Divides a cell to a random nearby location, NOT allowing overlap with vessels or MAP
-     */
-    public void randomDivideNotOverlap() {
-        assert G != null;
-        int options = MapEmptyHood(G.divHood); // check for empty spots within its division hood
-        if (options >= 1) { // if there is an empty spot, divide into a random one of the empty spots
-            G.NewAgentSQ(G.divHood[G.rng.Int(options)]).InitVessel(HEAD_CELL, this.length + 1);
-            InitVessel(BODY_CELL, this.length);
-        }
-    }
-
     /**
      * Calls cell to consume appropriate amount of VEGF
      */
     public void ConsumeVEGF() {
         assert G != null;
-        if ((G.VEGF.Get(Isq()) != 0) && ((type == HEAD_CELL) || (type == BODY_CELL))) { // Head cells and body cells consume VEGF
+        if ((G.VEGF.Get(Isq()) >= 0) && ((type == HEAD_CELL) || (type == BODY_CELL))) { // Head cells and body cells consume VEGF
             G.VEGF.Add(Isq(), -(G.VEGF.Get(Isq()))* VESSEL_VEGF_INTAKE);
             if (G.VEGF.Get(Isq()) < 0){
                 G.VEGF.Set(Isq(), 0);
@@ -225,7 +200,20 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
      * Initializes VEGF concentrations
      */
     public void InitializeVEGF() {
-        if (type == HEPARIN_MAP) {
+        if (type == HEPARIN_MAP && heparin_particle_release_VEGF) {
+
+            assert G != null;
+            int adjacent = G.MapHood(G.divHood, Isq()); // open areas around heparin particle
+
+            for (int i = 0; i < adjacent; i++) { // iterate thorough the adjacent areas
+                for (sproutAgent agent : G.IterAgents(G.divHood[i])) { // iterate through all the units around the coordinate
+                    if ((!agent.heparin_particle_release_VEGF) || (agent.type == HEAD_CELL)|| (agent.type == BODY_CELL)) { // if there is MAP GEL there
+                        this.heparin_particle_release_VEGF = false; // then keep track that there was a particle there.
+                        return;
+                    }
+                }
+            }
+
             double toAdd = (1 - G.VEGF.Get(Isq())) * 0.5;
             G.VEGF.Add(Isq(), (toAdd));
             if ((G.VEGF.Get(Isq())) > 1) {
@@ -237,10 +225,12 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
     /**
      * Performs vessel elongation more analogous to that specified in Mehdizadeh et al. Functions by growth rate
      * @param elongationLength the current length of elongation
-     * @param targetCoord the coordinate that the vessel is attempting to reach (has highest VEGF concentration)
      */
-    public void VesselGrowthByRate(int elongationLength, int targetCoord) {
+    public void VesselGrowthByRate(int elongationLength) {
         assert G != null;
+        if (type != HEAD_CELL){
+            return;
+        }
         if (G.VEGF.Get(Isq()) < VEGF_SENSITIVITY) { // if there's not enough VEGF, stay quiescent
             return;
         }
@@ -248,17 +238,16 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
             since_last_elongation += 1;
             return;
         }
-        if (type == HEAD_CELL && start_vessel_growth) {
+        if (start_vessel_growth) {
             int cellDivLocation;
-            if ((elongationLength >= MAX_ELONGATION_LENGTH) || (Isq() == targetCoord) || (targetCoord == 0)) { // if the vessel
+            if ((elongationLength >= MAX_ELONGATION_LENGTH) || (Isq() == target) || (target == 0)) { // if the vessel
                 // needs to find a new target (i.e. it has reached max elongation,
                 // it has reached a target, or it doesn't have a target...
-                elongationLength = 0; // reset elongation length
                 int highestConcentrationCoord = HighestConcentrationVEGF(); // find new target location
+                highestConcentrationCoord = CalculateTargetTwiceAsFar(highestConcentrationCoord); // find a point in the same direction, but very far away, so you won't reach it
                 cellDivLocation = HoodClosestToTarget(highestConcentrationCoord); // and find the closest adjacent coordinate to this location
-                if ((highestConcentrationCoord != 0) && (cellDivLocation != 0)){ // If there is a location of highest concentration and there is an open adjacent spot...
-                    highestConcentrationCoord = CalculateTargetTwiceAsFar(highestConcentrationCoord);
-                    G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, highestConcentrationCoord, elongationLength + 1, since_last_elongation); // make a new cell there
+                if ((highestConcentrationCoord > 0) && (cellDivLocation > 0)){ // If there is a location of highest concentration and there is an open adjacent spot...
+                    G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, highestConcentrationCoord, 0, since_last_elongation); // make a new cell there
                     InitVessel(BODY_CELL, this.length); // and make the old cell a body cell
                 }
                 // branching
@@ -271,8 +260,8 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
                 }
             } else {
                 // if not max length, not at target then it has a target to get to.
-                cellDivLocation = HoodClosestToTarget(targetCoord); // take the int position and find the closest neighborhood division spot
-                G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, targetCoord, elongationLength + 1, since_last_elongation); // make a new cell there
+                cellDivLocation = HoodClosestToTarget(target); // take the int position and find the closest neighborhood division spot
+                G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, target, elongationLength + 1, since_last_elongation); // make a new cell there
                 InitVessel(BODY_CELL, this.length);
             }
         }
@@ -311,7 +300,6 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
         // initialize VEGF
         InitializeVEGF();
 
-
         // calculate branching probability
         CalculateBranchingProbability();
 
@@ -319,6 +307,6 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
         CheckStartVesselGrowth();
 
         // Elongate
-        VesselGrowthByRate(0, 0);
+        VesselGrowthByRate(0);
     }
 }

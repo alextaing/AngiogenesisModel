@@ -31,7 +31,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public final static boolean BATCH_RUN = true;
     public final static boolean EXPORT_DATA = false;
     public final static int TRIALS = 3;
-    public final static double[] HEPARIN_PERCENTAGES = new double[]{0.1, 0.15, 0.2, 0.5};
+    public final static double[] HEPARIN_PERCENTAGES = new double[]{0.1, 0.15, 0.2};
 
     // VESSEL PARAMETERS
     public static final int CULTURE_RADIUS_MICRONS = 200; // microns

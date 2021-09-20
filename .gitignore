@@ -3,6 +3,7 @@
 HAL/
 out/
 EndoData/
+SproutingAssayData/
 
 # .jar files
 HalColorSchemes.jar

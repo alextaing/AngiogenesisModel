@@ -18,6 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 // ----------------------------------------------- GRID ZONE -----------------------------------------------------------
 
@@ -30,8 +31,8 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     // BATCH RUNS
     public final static boolean BATCH_RUN = true;
     public final static boolean EXPORT_DATA = false;
-    public final static int TRIALS = 3;
-    public final static double[] HEPARIN_PERCENTAGES = new double[]{0.1, 0.15, 0.2};
+    public final static int TRIALS = 5;
+    public final static double[] HEPARIN_PERCENTAGES = new double[]{ 0.5}; //0.05, 0.1, 0.15, 0.2,
 
     // VESSEL PARAMETERS
     public static final int CULTURE_RADIUS_MICRONS = 200; // microns
@@ -82,6 +83,8 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public final static int TIMESTEPS = RUNTIME_HOURS*TICKS_PER_HOUR; // how long will the simulation run?
     public final static int VESSEL_GROWTH_DELAY = (int)VESSEL_GROWTH_DELAY_HOURS*TICKS_PER_HOUR;
 
+    // DATA EXPORT
+    public static StringBuilder CSV = new StringBuilder();
 
 
     //------------------------------------------------------------------------------------------------------------------
@@ -90,12 +93,6 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public static int BODY_CELL = sproutAgent.BODY_CELL;
     public static int MAP_PARTICLE = sproutAgent.MAP_PARTICLE;
     public static int HEPARIN_MAP = sproutAgent.HEPARIN_MAP;
-
-    public static ArrayList<Double> arrivedTime = new ArrayList<>(); // the time of vessels that have arrived
-    public static ArrayList<Integer> arrivedLengths = new ArrayList<>(); // the length of vessels upon arrival
-    public static ArrayList<Integer> finalLengths = new ArrayList<>(); // the length of vessels at end of run
-    public static ArrayList<Integer> invasionDepth = new ArrayList<>(); // vessel invasion depth
-
 
     Rand rng = new Rand();
     int[] divHood = Util.VonNeumannHood(false); // neighborhood for division
@@ -115,6 +112,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
         VEGF = new PDEGrid2D(x, y);
     }
 
+
     /**
      * Steps all cells
      */
@@ -127,6 +125,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
         VEGF.Update();
     }
 
+
     /**
      * Draws the PDE window
      * @param windows the window to draw the PDE in
@@ -136,6 +135,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
             windows.SetPix(i,Util.HeatMapBGR(VEGF.Get(i)));
         }
     }
+
 
     /**
      * Draws the cell model
@@ -165,6 +165,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
         double dist = Math.sqrt((Math.pow((x1-x2), 2)+Math.pow((y1-y2), 2)));
         return (int)dist;
     }
+
 
     /**
      * Initializes the vessels at both side of the wound
@@ -214,166 +215,77 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
         }
     }
 
-    /**
-     * Collects the data for export
-     * @return the CSV to export
-     */
-    public StringBuilder CollectData(){
-        StringBuilder dataset = new StringBuilder();
-
-        // vessel cells, MAP Particle, and Heparin MAP Data
-        StringBuilder vessel_cell_data = new StringBuilder();
-
-        // Collects data about all coordinates occupied by vessels
+    
+    public int countVessels() {
+        int vessel_unit_counter = 0; // total vessel length calculated by taking the number of vessel units and multiplying by conversion factor
         for (int x_coord = 0; x_coord < x; x_coord++) {
             for (int y_coord = 0; y_coord < y; y_coord++) {
                 Iterable<sproutAgent> agents = IterAgents(x_coord, y_coord);
                 for (sproutAgent agent : agents) {
                     if (agent.type == HEAD_CELL || agent.type == BODY_CELL){
-                        if (vessel_cell_data.length() == 0){
-                            vessel_cell_data.append("Vessel Coordinates (x-y)");
-                        }
-                        vessel_cell_data.append(", ").append(agent.Xsq()).append("-").append(agent.Ysq());
+                        vessel_unit_counter ++;
+                        break;
                     }
                 }
 
             }
         }
-
-        // time data
-        StringBuilder time_data= new StringBuilder();
-
-        // Collects data on arrival times (collected throughout the run in arrivedTime array)
-        for (Double Double : arrivedTime) {
-            if (time_data.length() == 0){
-                time_data.append("Arrival Time (h)");
-            }
-            if (Double == -1) {
-                time_data.append(", N/A");
-            } else {
-                time_data.append(", ").append(Double);
-            }
-        }
-
-        // arrivalLength data
-        StringBuilder arrivalLength_data= new StringBuilder();
-
-        for (Integer length : arrivedLengths) {
-            if (arrivalLength_data.length() == 0){
-                arrivalLength_data.append("Length at arrival (microns)");
-            }
-            arrivalLength_data.append(", ").append(length);
-        }
-
-        // End length and invasion depth data
-        StringBuilder finalLength_data= new StringBuilder();
-        StringBuilder invasionDepth_data= new StringBuilder();
-
-        for (sproutAgent cell : IterAgentsRect(0,0,x,y)){
-            if (cell.type == HEAD_CELL) {
-                int invDepth;
-//                if (cell.vesselBottom){
-//                    invDepth = cell.Ysq()*16;
-//                } else{
-                    invDepth = (y-cell.Ysq())*16;
-//                }
-
-                if (invasionDepth_data.length() == 0){
-                    invasionDepth_data.append("Invasion depth (microns)");
-                }
-                invasionDepth.add(invDepth);
-                invasionDepth_data.append(", ").append(invDepth);
-
-                int finalLength = cell.length*16;
-                if (finalLength_data.length() == 0){
-                    finalLength_data.append("Final Length (microns)");
-                }
-                finalLengths.add(finalLength);
-                finalLength_data.append(", ").append(finalLength);
-            }
-        }
-        int anastomoses = 0;
-
-        for (int x_coord = 0; x_coord < x; x_coord++) {
-            for (int y_coord = 0; y_coord < y; y_coord++) {
-                int vesselCount = 0;
-                Iterable<sproutAgent> cells = IterAgents(x_coord, y_coord);
-                for (sproutAgent cell: cells) {
-                    if (cell.type == HEAD_CELL || cell.type == BODY_CELL){
-                        vesselCount++;
-                    }
-                }
-                if (vesselCount > 1){
-                    anastomoses++;
-                }
-            }
-        }
-        return dataset.append(time_data).append("\n").append(arrivalLength_data).append("\n").append(invasionDepth_data).append("\n").append(finalLength_data).append("\n").append(vessel_cell_data).append("\n").append("Total Anastomoses, ").append(anastomoses);
+        return vessel_unit_counter;
+    }
+    
+    
+    /**
+     * Collects the data for export
+     */
+    public void CollectData(double heparinPercentage, int initialCultureSize){
+        // vessel cells, MAP Particle, and Heparin MAP Data
+        CSV.append("\n");
+        
+        // Note percentage
+        CSV.append((int)(heparinPercentage*100)).append("%,");
+        
+        // Total vessel length
+        int numVessels = countVessels();
+        CSV.append((numVessels-initialCultureSize)*MICRONS_PER_MM).append(","); // total length of vessels
+        
+        // Fold change
+        double foldChange = numVessels/(double)initialCultureSize;
+        CSV.append(foldChange);
     }
 
+
     /**
-     * Exports data to EndoData file: arrival time, endothelial cells coordinates, MAP and HepMAP coordinates
+     * Exports data to SproutingAssayData file: arrival time, endothelial cells coordinates, MAP and HepMAP coordinates
      * @throws IOException error in data export
      */
     public void ExportData() throws IOException {
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-        String timestamp_string = timestamp.toString().replace(" ","_").replace(".", "-").replace(":", "-");
-        Path fileName= Path.of("SproutingAssay\\EndoData\\" + timestamp_string + ".csv");
-        StringBuilder dataset = CollectData();
-        Files.writeString(fileName, dataset);
-    }
-
-    /**
-     * Exports data to the Batch run file inside EndoData file during batch runs
-     * @param datafile the name of the batch run file
-     * @param trial_number trial number
-     * @param heparinPercentage percentage heparin (to be included in the file name)
-     * @throws IOException if the file cannot be found
-     */
-    public void ExportData(Path datafile, int trial_number, double heparinPercentage) throws IOException {
-        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-        String timestamp_string = timestamp.toString().replace(" ","_").replace(".", "-").replace(":", "-");
-        heparinPercentage = (heparinPercentage*100);
-        trial_number = trial_number+1;
-        Path fileName= Path.of(datafile + "\\"+ heparinPercentage +"% "+" Trial " + trial_number + ", " + timestamp_string + ".csv");
-        StringBuilder dataset = CollectData();
-        Files.writeString(fileName, dataset);
-    }
-
-    /**
-     * Clears data from arrivedTime and arrivedLengths, just a precaution
-     */
-    public void ClearData() {
-        arrivedTime.clear();
-        arrivedLengths.clear();
-        finalLengths.clear();
-        invasionDepth.clear();
-    }
-
-    /**
-     * makes the batch run folder to organize the data from a single batch run
-     * @return the pathname of the created batch folder
-     * @throws IOException if the folder cannot be made
-     */
-    public Path MakeBatchRunFolder() throws IOException {
-        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-        String timestamp_string = timestamp.toString().replace(" ","_").replace(".", "-").replace(":", "-");
-        StringBuilder HeparinPercentagesString = new StringBuilder();
-        HeparinPercentagesString.append(HEPARIN_PERCENTAGES[0]*100);
-        if (HEPARIN_PERCENTAGES.length > 1){
-            for (int i = 1; i < HEPARIN_PERCENTAGES.length; i++) {
-                HeparinPercentagesString.append("- ");
-                HeparinPercentagesString.append(HEPARIN_PERCENTAGES[i]*100);
+        ArrayList<Integer> percentages = new ArrayList<>();
+        if (BATCH_RUN) {
+            for (double percentage : HEPARIN_PERCENTAGES) {
+                percentage = percentage*100;
+                percentages.add((int)percentage);
             }
-        }
-        Path fileName= Path.of("SproutingAssay\\EndoData\\" + "Batch ["+ HeparinPercentagesString + "]% " + timestamp_string);
-        File file = new File(String.valueOf(fileName));
-        if (!file.mkdir()) {
-            throw new IOException("Batch Run folder not made");
+        } else {
+            percentages.add((int)(HEPARIN_PERCENTAGES[0]*100));
         }
 
-        return fileName;
+        String timestamp_string = ((timestamp.toString().replace(" ","_").replace(".", "-").replace(":", "-")).substring(0, 10) +" " + (percentages) + "%");
+        Path fileName= Path.of("SproutingAssay\\SproutingAssayData\\" + timestamp_string + ".csv");
+        int i = 1;
+        while (Files.exists(fileName)){
+            fileName= Path.of("SproutingAssay\\SproutingAssayData\\" + timestamp_string + " (" + i + ")" + ".csv");
+            i++;
+        }
+        StringBuilder dataset = CSV;
+        Files.writeString(fileName, dataset);
     }
+
+    
+    public void Initialize_CSV(){
+        CSV.append("Heparin Percentage (%), Total Vessel Length (microns), Fold Change (%)");
+    }
+
 
 // ----------------------------------------------- MAIN METHOD ---------------------------------------------------------
     public static void main(String[] args) throws IOException {
@@ -382,24 +294,22 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
 
         sproutGrid model = new sproutGrid(x, y); // initialize agent grid
 
-        Path fileName= Path.of("SproutingAssay\\EndoData");
-        File EndoDatafile = new File(String.valueOf(fileName));
+        Path fileName= Path.of("SproutingAssay\\SproutingAssayData");
+        File SproutingAssayDatafile = new File(String.valueOf(fileName));
 
-        if (EXPORT_DATA && !EndoDatafile.exists()) {
-            if (!EndoDatafile.mkdir()) {
-                throw new IOException("EndoData folder not made");
+        if (EXPORT_DATA && !SproutingAssayDatafile.exists()) {
+            if (!SproutingAssayDatafile.mkdir()) {
+                throw new IOException("SproutingAssayData folder not made");
             }
         }
 
         if (!BATCH_RUN){
-
-            // initialize
-            model.ClearData();
-
+            // Initialize
             model.initVesselsCircleCulture(model, INITIAL_PERCENT_HEAD_CELLS);
-//            model.initHealthyTissue(model);
             model.initMAPParticles(model, HEPARIN_PERCENTAGES[0]);
 
+            model.Initialize_CSV();
+            int culture_size = model.countVessels(); // used for the initial vessel count in fold change
             for (int i = 0; i < TIMESTEPS; i++){
                 // pause
                 gridWin.TickPause(TICK_PAUSE); // how fast the simulation runs
@@ -411,25 +321,24 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
                 model.DrawModel(gridWin); // draw the agent window
             }
             if (EXPORT_DATA){
+                model.CollectData(HEPARIN_PERCENTAGES[0], culture_size);
                 model.ExportData();
             }
 
         } else {
-            Path datafile;
-            if (EXPORT_DATA){
-                datafile = model.MakeBatchRunFolder();
-            }
+            model.Initialize_CSV();
 
             for (double heparinPercentage : HEPARIN_PERCENTAGES) { // For each percentage listen in HEPARIN_PERCENTAGES
                 for (int trial = 0; trial < TRIALS; trial++) { // perform the amount of trials specified in TRIALS
                     // initialize
-                    model.ClearData();  // Clear all data arrays
                     model.Reset(); // reset the model
                     model.ResetTick(); // reset the time tick
                     model.VEGF = new PDEGrid2D(x, y); // initialize the diffusion grid
                     model.initVesselsCircleCulture(model, INITIAL_PERCENT_HEAD_CELLS); // initialize vessels
 //                    model.initHealthyTissue(model);
                     model.initMAPParticles(model, heparinPercentage); // initialize MAP particles
+
+                    int culture_size = model.countVessels(); // used for the initial vessel count in fold change
 
                     for (int i = 0; i < TIMESTEPS; i++){
                         // pause
@@ -442,10 +351,11 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
                         model.DrawModel(gridWin); // draw the agent window
                     }
                     if (EXPORT_DATA){
-                        model.ExportData(datafile ,trial, heparinPercentage);
+                        model.CollectData(heparinPercentage, culture_size);
                     }
                 }
             }
+            model.ExportData();
         }
     }
 }

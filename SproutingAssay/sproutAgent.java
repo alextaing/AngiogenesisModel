@@ -224,9 +224,8 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
 
     /**
      * Performs vessel elongation more analogous to that specified in Mehdizadeh et al. Functions by growth rate
-     * @param elongationLength the current length of elongation
      */
-    public void VesselGrowthByRate(int elongationLength) {
+    public void VesselGrowthByRate() {
         assert G != null;
         if (type != HEAD_CELL){
             return;
@@ -307,6 +306,6 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
         CheckStartVesselGrowth();
 
         // Elongate
-        VesselGrowthByRate(0);
+        VesselGrowthByRate();
     }
 }

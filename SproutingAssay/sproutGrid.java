@@ -44,11 +44,11 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
 
     // MIGRATION RATE AND BRANCHING PROBABILITY
     public final static int MIGRATION_RATE_MICRONS_PER_HOUR = 30; // microns/hr
-    public final static double LOW_BRANCHING_PROBABILITY= 0.4; // probability of branching while VEGF is under LOW_MED_VEGF_THRESHOLD
+    public final static double LOW_BRANCHING_PROBABILITY= 0.0001; // probability of branching while VEGF is under LOW_MED_VEGF_THRESHOLD
     public final static double LOW_MED_VEGF_THRESHOLD = 0.33;
-    public final static double MED_BRANCHING_PROBABILITY= 0.6; // probability of branching while VEGF is between LOW_MED_VEGF_THRESHOLD and MED_HIGH_VEGF_THRESHOLD
+    public final static double MED_BRANCHING_PROBABILITY= 0.001; // probability of branching while VEGF is between LOW_MED_VEGF_THRESHOLD and MED_HIGH_VEGF_THRESHOLD
     public final static double MED_HIGH_VEGF_THRESHOLD = 0.66;
-    public final static double HIGH_BRANCHING_PROBABILITY= 0.9; // probability of branching while VEGF is above MED_HIGH_VEGF_THRESHOLD
+    public final static double HIGH_BRANCHING_PROBABILITY= 0.01; // probability of branching while VEGF is above MED_HIGH_VEGF_THRESHOLD
 
     // MAP GEL PARAMETERS
     public final static int MAP_RADIUS_MICRONS = 30; // microns
@@ -355,7 +355,9 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
                     }
                 }
             }
-            model.ExportData();
+            if (EXPORT_DATA){
+                model.ExportData();
+            }
         }
     }
 }

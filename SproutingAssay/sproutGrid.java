@@ -53,6 +53,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     // MAP GEL PARAMETERS
     public final static int MAP_RADIUS_MICRONS = 30; // microns
     public final static int MAP_SPACING_MICRONS = 30; // microns
+    public final static double HEP_MAP_VEGF_RELEASE = 0.5; // how much VEGF to add per tick: see implementation in SproutAgent for context
 
     // MAIN METHOD PARAMETERS
     public final static int x_MICRONS = 2000; // microns

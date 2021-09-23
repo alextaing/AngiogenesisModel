@@ -29,6 +29,7 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
     public final static int VESSEL_GROWTH_DELAY = sproutGrid.VESSEL_GROWTH_DELAY;
     public final static double VEGF_SENSITIVITY = sproutGrid.VEGF_SENSITIVITY;
     public final static int MAX_ELONGATION_LENGTH = sproutGrid.MAX_ELONGATION_LENGTH;
+    public static final double HEP_MAP_VEGF_RELEASE = sproutGrid.HEP_MAP_VEGF_RELEASE;
 
     public final static double LOW_BRANCHING_PROBABILITY= sproutGrid.LOW_BRANCHING_PROBABILITY;
     public final static double LOW_MED_VEGF_THRESHOLD = sproutGrid.LOW_MED_VEGF_THRESHOLD;
@@ -214,7 +215,13 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
                 }
             }
 
-            double toAdd = (1 - G.VEGF.Get(Isq())) * 0.5;
+            double toAdd = (1 - G.VEGF.Get(Isq())) * HEP_MAP_VEGF_RELEASE; // the more VEGF present, the less VEGF released-- with a max of 1
+            // HEP_MAP_VEGF_RELEASE is the percent of (1-currentVEGF) to add.
+            // i.e. if 0.2 VEGF present, and HEP_MAP_VEGF_RELEASE = 0.5, then 0.4 VEGF would be added (1-0.2)*0.5 = 0.4
+            // CAN BE CHANGED. only reason this was changed was because VEGF intake was changed to be a percentage of
+            // VEGF present, so I wanted to be consistent and make it such that VEGF initialization around HEP_MAP particles
+            // operated similarly (as a function of VEGF already present).
+
             G.VEGF.Add(Isq(), (toAdd));
             if ((G.VEGF.Get(Isq())) > 1) {
                 G.VEGF.Set(Isq(), 1);

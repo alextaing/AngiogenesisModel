@@ -72,6 +72,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     // vessels
     public static final int CULTURE_RADIUS = CULTURE_RADIUS_MICRONS/MICRONS_PER_MM;
     public final static int SIGHT_RADIUS = SIGHT_RADIUS_MICRONS/MICRONS_PER_MM; // radius to detect VEGF
+    // TODO: MAX_ELONGATION_LENGTH
     public static final int MAX_ELONGATION_LENGTH = MAX_ELONGATION_LENGTH_MICRONS/MICRONS_PER_MM;
     public final static double MIGRATION_RATE = 1/((MIGRATION_RATE_MICRONS_PER_HOUR/(double)MICRONS_PER_MM)*(1/(double)TICKS_PER_HOUR)); // convert to "elongate every ___ ticks"
     // particles

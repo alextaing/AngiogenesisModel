@@ -229,49 +229,77 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
         }
     }
 
+    // Edit for changing elongation length to persistency time
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
     /**
      * Performs vessel elongation more analogous to that specified in Mehdizadeh et al. Functions by growth rate
      */
     public void VesselGrowthByRate() {
+        // checks of G is null (just for safely)
         assert G != null;
+
+        // only continue for head cells
         if (type != HEAD_CELL){
             return;
         }
-        if (G.VEGF.Get(Isq()) < VEGF_SENSITIVITY) { // if there's not enough VEGF, stay quiescent
+
+        // only continue if there is enough VEGF around, if not then stay quiescent
+        if (G.VEGF.Get(Isq()) < VEGF_SENSITIVITY) {
             return;
         }
+
+        // Makes the vessel grow at a certain rate (i.e. 30 microns/hr) (this is NOT elongation length!!!)
         if (since_last_elongation < migration_rate){ // if it's not yet time to migrate, then don't migrate yet.
             since_last_elongation += 1;
             return;
         }
+
+
         if (start_vessel_growth) {
-            int cellDivLocation;
-            if ((elongationLength >= MAX_ELONGATION_LENGTH) || (Isq() == target) || (target == 0)) { // if the vessel
-                // needs to find a new target (i.e. it has reached max elongation,
-                // it has reached a target, or it doesn't have a target...
-                int highestConcentrationCoord = HighestConcentrationVEGF(); // find new target location
-                highestConcentrationCoord = CalculateTargetTwiceAsFar(highestConcentrationCoord); // find a point in the same direction, but very far away, so you won't reach it
-                cellDivLocation = HoodClosestToTarget(highestConcentrationCoord); // and find the closest adjacent coordinate to this location
-                if ((highestConcentrationCoord > 0) && (cellDivLocation > 0)){ // If there is a location of highest concentration and there is an open adjacent spot...
-                    G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, highestConcentrationCoord, 0, since_last_elongation); // make a new cell there
+            int cellDivLocation; // stores the int version of the location where the cell will grow to
+
+            // TODO: ELONGATION LENGTH modifications
+                // some implementation ideas:
+                // 1) store of the time tick of the time it's changed direction, and change
+                // direction once time elapsed > persistency time, then find a new direction
+                // 2) keep a running tally of time since last change direction, and find a
+                // new direction once that tally > persistency time
+            if ((elongationLength >= MAX_ELONGATION_LENGTH) || (Isq() == target) || (target == 0)) {
+
+                int highestConcentrationCoord = HighestConcentrationVEGF(); // find new target location: the location in the sight radius with the highest VEGF
+                highestConcentrationCoord = CalculateTargetTwiceAsFar(highestConcentrationCoord); // find a point in the same direction, but very far away, so you won't reach it: want to persist in that direction
+                cellDivLocation = HoodClosestToTarget(highestConcentrationCoord); // and find the closest adjacent coordinate in the direction towards the highestConcentrationCoord
+
+                if ((highestConcentrationCoord > 0) && (cellDivLocation > 0)){ // If there is a location of highest concentration and there is an open adjacent spot... (the values will be 0 if none were found)
+                    G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, highestConcentrationCoord, 0, since_last_elongation); // make a new head cell at cellDivLocation
                     InitVessel(BODY_CELL, this.length); // and make the old cell a body cell
                 }
+
                 // branching
-                if(G.rng.Double() < branching_probability){
+
+                // TODO: (for alex) check if branching probability is being properly modified.  I think it is, but I think it's worth a double check
+                if(G.rng.Double() < branching_probability){ // if the cell happens to branch (branching probability is a parameter of the cell, and is modified by a function CalculateBranchingProbability)
+
+                    // the options for branching locations around the cell
                     int options = MapEmptyHood(G.divHood);
                     if (options >= 1) { // if there is an open nearby location, then branch there
-                        G.NewAgentSQ(G.divHood[G.rng.Int(options)]).InitVesselMigrationRate(HEAD_CELL, this.length + 1, 0, 0, 0);
-                        InitVessel(BODY_CELL, this.length);
+                        G.NewAgentSQ(G.divHood[G.rng.Int(options)]).InitVesselMigrationRate(HEAD_CELL, this.length + 1, 0, 0, 0); // make a new head cell at the branching location
+                        InitVessel(BODY_CELL, this.length); // make the old cell a body cell
                     }
                 }
             } else {
-                // if not max length, not at target then it has a target to get to.
-                cellDivLocation = HoodClosestToTarget(target); // take the int position and find the closest neighborhood division spot
+                // if not at max length and not at it's target location, then it has a target that it needs to get to.
+                cellDivLocation = HoodClosestToTarget(target); // find an open adjacent location closest to the target
                 G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, target, elongationLength + 1, since_last_elongation); // make a new cell there
-                InitVessel(BODY_CELL, this.length);
+                InitVessel(BODY_CELL, this.length); // make the old cell a body cell
             }
         }
     }
+
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     public int CalculateTargetTwiceAsFar(int targetCoord){
         assert G != null;

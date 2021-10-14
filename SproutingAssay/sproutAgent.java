@@ -11,6 +11,8 @@ import HAL.Util;
 
 import java.util.ArrayList;
 
+import static SproutingAssay.sproutGrid.PERSISTENCY_TIME;
+
 public class sproutAgent extends AgentSQ2D<sproutGrid> {
 
 
@@ -28,7 +30,7 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
     public static double VESSEL_VEGF_INTAKE = sproutGrid.VESSEL_VEGF_INTAKE;
     public final static int VESSEL_GROWTH_DELAY = sproutGrid.VESSEL_GROWTH_DELAY;
     public final static double VEGF_SENSITIVITY = sproutGrid.VEGF_SENSITIVITY;
-    public final static int MAX_ELONGATION_LENGTH = sproutGrid.MAX_ELONGATION_LENGTH;
+    //public final static int MAX_ELONGATION_LENGTH = sproutGrid.MAX_ELONGATION_LENGTH;
     public static final double HEP_MAP_VEGF_RELEASE = sproutGrid.HEP_MAP_VEGF_RELEASE;
 
     public final static double LOW_BRANCHING_PROBABILITY= sproutGrid.LOW_BRANCHING_PROBABILITY;
@@ -46,6 +48,7 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
     double branching_probability;
     int since_last_elongation;
     int elongationLength;
+    int ticks_since_directionchange;
     public static boolean start_vessel_growth = true; // is set to true when vessels begin to invade
     boolean heparin_particle_release_VEGF = true;
 
@@ -253,6 +256,7 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
         // Makes the vessel grow at a certain rate (i.e. 30 microns/hr) (this is NOT elongation length!!!)
         if (since_last_elongation < migration_rate){ // if it's not yet time to migrate, then don't migrate yet.
             since_last_elongation += 1;
+            ticks_since_directionchange +=1;
             return;
         }
 
@@ -266,7 +270,8 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
                 // direction once time elapsed > persistency time, then find a new direction
                 // 2) keep a running tally of time since last change direction, and find a
                 // new direction once that tally > persistency time
-            if ((elongationLength >= MAX_ELONGATION_LENGTH) || (Isq() == target) || (target == 0)) {
+           // if ((elongationLength >= MAX_ELONGATION_LENGTH) || (Isq() == target) || (target == 0)) {
+            if (( ticks_since_directionchange >= PERSISTENCY_TIME) || (Isq() == target) || (target == 0)){
 
                 int highestConcentrationCoord = HighestConcentrationVEGF(); // find new target location: the location in the sight radius with the highest VEGF
                 highestConcentrationCoord = CalculateTargetTwiceAsFar(highestConcentrationCoord); // find a point in the same direction, but very far away, so you won't reach it: want to persist in that direction
@@ -275,6 +280,7 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
                 if ((highestConcentrationCoord > 0) && (cellDivLocation > 0)){ // If there is a location of highest concentration and there is an open adjacent spot... (the values will be 0 if none were found)
                     G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, highestConcentrationCoord, 0, since_last_elongation); // make a new head cell at cellDivLocation
                     InitVessel(BODY_CELL, this.length); // and make the old cell a body cell
+
                 }
 
                 // branching
@@ -292,9 +298,11 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
             } else {
                 // if not at max length and not at it's target location, then it has a target that it needs to get to.
                 cellDivLocation = HoodClosestToTarget(target); // find an open adjacent location closest to the target
-                G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, target, elongationLength + 1, since_last_elongation); // make a new cell there
+                G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, target, ticks_since_directionchange, since_last_elongation); // make a new cell there LP QUestion: how do I make ticks_since_direction change= 0
                 InitVessel(BODY_CELL, this.length); // make the old cell a body cell
             }
+
+
         }
     }
 

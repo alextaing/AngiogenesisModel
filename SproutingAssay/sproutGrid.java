@@ -37,10 +37,11 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     // VESSEL PARAMETERS
     public static final int CULTURE_RADIUS_MICRONS = 200; // microns
     public final static int SIGHT_RADIUS_MICRONS = 20; // microns
-    public static final int MAX_ELONGATION_LENGTH_MICRONS = 40; // microns
+    //public static final int MAX_ELONGATION_LENGTH_MICRONS = 40; // microns
     public final static double VEGF_SENSITIVITY = 0.0001; // minimum VEGF to attract cell growth
     public static double VESSEL_VEGF_INTAKE = 0.1; // percent of how much of the present VEGF is consumed when a blood vessel is nearby
     public final static double INITIAL_PERCENT_HEAD_CELLS = 0.05; // probability of initializing an off branch from wound site
+    public final static int PERSISTENCY_TIME_PER_HOUR = 5; // persistency time of endothelial cell is 5 hrs
 
     // MIGRATION RATE AND BRANCHING PROBABILITY
     public final static int MIGRATION_RATE_MICRONS_PER_HOUR = 30; // microns/hr
@@ -73,8 +74,10 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public static final int CULTURE_RADIUS = CULTURE_RADIUS_MICRONS/MICRONS_PER_MM;
     public final static int SIGHT_RADIUS = SIGHT_RADIUS_MICRONS/MICRONS_PER_MM; // radius to detect VEGF
     // TODO: MAX_ELONGATION_LENGTH
-    public static final int MAX_ELONGATION_LENGTH = MAX_ELONGATION_LENGTH_MICRONS/MICRONS_PER_MM;
+    //public static final int MAX_ELONGATION_LENGTH = MAX_ELONGATION_LENGTH_MICRONS/MICRONS_PER_MM;
     public final static double MIGRATION_RATE = 1/((MIGRATION_RATE_MICRONS_PER_HOUR/(double)MICRONS_PER_MM)*(1/(double)TICKS_PER_HOUR)); // convert to "elongate every ___ ticks"
+    public final static double PERSISTENCY_TIME = PERSISTENCY_TIME_PER_HOUR * TICKS_PER_HOUR;
+
     // particles
     public final static int MAP_RADIUS = MAP_RADIUS_MICRONS/MICRONS_PER_MM; // radius of MAP particle
     public final static int MAP_SPACING = MAP_RADIUS_MICRONS/MICRONS_PER_MM + MAP_SPACING_MICRONS/MICRONS_PER_MM; // spacing radius between MAP gel centers

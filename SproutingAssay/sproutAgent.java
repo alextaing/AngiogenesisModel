@@ -201,38 +201,6 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
         }
     }
 
-//    /**
-//     * Initializes VEGF concentrations
-//     */
-//    public void InitializeVEGF() {
-//        if (type == HEPARIN_MAP && heparin_particle_release_VEGF) {
-//
-//            assert G != null;
-//            int adjacent = G.MapHood(G.divHood, Isq()); // open areas around heparin particle
-//
-//            for (int i = 0; i < adjacent; i++) { // iterate thorough the adjacent areas
-//                for (sproutAgent agent : G.IterAgents(G.divHood[i])) { // iterate through all the units around the coordinate
-//                    if ((!agent.heparin_particle_release_VEGF) || (agent.type == HEAD_CELL)|| (agent.type == BODY_CELL)) { // if there is MAP GEL there
-//                        this.heparin_particle_release_VEGF = false; // then keep track that there was a particle there.
-//                        return;
-//                    }
-//                }
-//            }
-//
-//            double toAdd = (1 - G.VEGF.Get(Isq())) * HEP_MAP_VEGF_RELEASE; // the more VEGF present, the less VEGF released-- with a max of 1
-//            // HEP_MAP_VEGF_RELEASE is the percent of (1-currentVEGF) to add.
-//            // i.e. if 0.2 VEGF present, and HEP_MAP_VEGF_RELEASE = 0.5, then 0.4 VEGF would be added (1-0.2)*0.5 = 0.4
-//            // CAN BE CHANGED. only reason this was changed was because VEGF intake was changed to be a percentage of
-//            // VEGF present, so I wanted to be consistent and make it such that VEGF initialization around HEP_MAP particles
-//            // operated similarly (as a function of VEGF already present).
-//
-//            G.VEGF.Add(Isq(), (toAdd));
-//            if ((G.VEGF.Get(Isq())) > 1) {
-//                G.VEGF.Set(Isq(), 1);
-//            }
-//        }
-//    }
-
     public void ExchangeMedia(){
         assert G != null;
         if (G.GetTick()%MEDIA_EXCHANGE_SCHEDULE_TICKS == 0){
@@ -242,9 +210,6 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
         }
 
     }
-
-    // Edit for changing elongation length to persistency time
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
     /**

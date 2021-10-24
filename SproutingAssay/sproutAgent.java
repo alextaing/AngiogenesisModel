@@ -11,6 +11,7 @@ import HAL.Util;
 
 import java.util.ArrayList;
 
+import static SproutingAssay.sproutGrid.MAX_ELONGATION_LENGTH;
 import static SproutingAssay.sproutGrid.PERSISTENCY_TIME;
 
 public class sproutAgent extends AgentSQ2D<sproutGrid> {
@@ -32,6 +33,7 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
     public final static double VEGF_SENSITIVITY = sproutGrid.VEGF_SENSITIVITY;
     //public final static int MAX_ELONGATION_LENGTH = sproutGrid.MAX_ELONGATION_LENGTH;
     public static final double HEP_MAP_VEGF_RELEASE = sproutGrid.HEP_MAP_VEGF_RELEASE;
+    public static final double MEDIA_EXCHANGE_SCHEDULE_TICKS = sproutGrid.MEDIA_EXCHANGE_SCHEDULE_TICKS;
 
     public final static double LOW_BRANCHING_PROBABILITY= sproutGrid.LOW_BRANCHING_PROBABILITY;
     public final static double LOW_MED_VEGF_THRESHOLD = sproutGrid.LOW_MED_VEGF_THRESHOLD;
@@ -47,7 +49,6 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
     double migration_rate = sproutGrid.MIGRATION_RATE;
     double branching_probability;
     int since_last_elongation;
-    int elongationLength;
     int ticks_since_directionchange;
     public static boolean start_vessel_growth = true; // is set to true when vessels begin to invade
     boolean heparin_particle_release_VEGF = true;
@@ -166,13 +167,11 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
      * @param type type of cell/particle
      * @param length the current length of the vessel
      * @param target the location where the vessel is growing towards
-     * @param elongationLength the current elongation length of the vessel head cell
      */
-    public void InitVesselMigrationRate(int type, int length, int target, int elongationLength, int since_last_elongation, int ticks_since_directionchange) {
+    public void InitVesselMigrationRate(int type, int length, int target, int since_last_elongation, int ticks_since_directionchange) {
         this.type = type;
         this.length = length;
         this.target = target;
-        this.elongationLength = elongationLength;
         this.since_last_elongation = since_last_elongation;
         this.color = HEAD_CELL_COLOR;
         this.ticks_since_directionchange = ticks_since_directionchange;
@@ -201,36 +200,46 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
         }
     }
 
-    /**
-     * Initializes VEGF concentrations
-     */
-    public void InitializeVEGF() {
-        if (type == HEPARIN_MAP && heparin_particle_release_VEGF) {
+//    /**
+//     * Initializes VEGF concentrations
+//     */
+//    public void InitializeVEGF() {
+//        if (type == HEPARIN_MAP && heparin_particle_release_VEGF) {
+//
+//            assert G != null;
+//            int adjacent = G.MapHood(G.divHood, Isq()); // open areas around heparin particle
+//
+//            for (int i = 0; i < adjacent; i++) { // iterate thorough the adjacent areas
+//                for (sproutAgent agent : G.IterAgents(G.divHood[i])) { // iterate through all the units around the coordinate
+//                    if ((!agent.heparin_particle_release_VEGF) || (agent.type == HEAD_CELL)|| (agent.type == BODY_CELL)) { // if there is MAP GEL there
+//                        this.heparin_particle_release_VEGF = false; // then keep track that there was a particle there.
+//                        return;
+//                    }
+//                }
+//            }
+//
+//            double toAdd = (1 - G.VEGF.Get(Isq())) * HEP_MAP_VEGF_RELEASE; // the more VEGF present, the less VEGF released-- with a max of 1
+//            // HEP_MAP_VEGF_RELEASE is the percent of (1-currentVEGF) to add.
+//            // i.e. if 0.2 VEGF present, and HEP_MAP_VEGF_RELEASE = 0.5, then 0.4 VEGF would be added (1-0.2)*0.5 = 0.4
+//            // CAN BE CHANGED. only reason this was changed was because VEGF intake was changed to be a percentage of
+//            // VEGF present, so I wanted to be consistent and make it such that VEGF initialization around HEP_MAP particles
+//            // operated similarly (as a function of VEGF already present).
+//
+//            G.VEGF.Add(Isq(), (toAdd));
+//            if ((G.VEGF.Get(Isq())) > 1) {
+//                G.VEGF.Set(Isq(), 1);
+//            }
+//        }
+//    }
 
-            assert G != null;
-            int adjacent = G.MapHood(G.divHood, Isq()); // open areas around heparin particle
-
-            for (int i = 0; i < adjacent; i++) { // iterate thorough the adjacent areas
-                for (sproutAgent agent : G.IterAgents(G.divHood[i])) { // iterate through all the units around the coordinate
-                    if ((!agent.heparin_particle_release_VEGF) || (agent.type == HEAD_CELL)|| (agent.type == BODY_CELL)) { // if there is MAP GEL there
-                        this.heparin_particle_release_VEGF = false; // then keep track that there was a particle there.
-                        return;
-                    }
-                }
-            }
-
-            double toAdd = (1 - G.VEGF.Get(Isq())) * HEP_MAP_VEGF_RELEASE; // the more VEGF present, the less VEGF released-- with a max of 1
-            // HEP_MAP_VEGF_RELEASE is the percent of (1-currentVEGF) to add.
-            // i.e. if 0.2 VEGF present, and HEP_MAP_VEGF_RELEASE = 0.5, then 0.4 VEGF would be added (1-0.2)*0.5 = 0.4
-            // CAN BE CHANGED. only reason this was changed was because VEGF intake was changed to be a percentage of
-            // VEGF present, so I wanted to be consistent and make it such that VEGF initialization around HEP_MAP particles
-            // operated similarly (as a function of VEGF already present).
-
-            G.VEGF.Add(Isq(), (toAdd));
-            if ((G.VEGF.Get(Isq())) > 1) {
-                G.VEGF.Set(Isq(), 1);
+    public void ExchangeMedia(){
+        assert G != null;
+        if (G.GetTick()%MEDIA_EXCHANGE_SCHEDULE_TICKS == 0){
+            if (type == HEPARIN_MAP){
+                G.VEGF.Set(Isq(), HEP_MAP_VEGF_RELEASE);
             }
         }
+
     }
 
     // Edit for changing elongation length to persistency time
@@ -249,9 +258,8 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
             return;
         }
 
-        // only continue if there is enough VEGF around, if not then stay quiescent
-        if (G.VEGF.Get(Isq()) < VEGF_SENSITIVITY) {
-            return;
+        if (ticks_since_directionchange <= PERSISTENCY_TIME) {
+            ticks_since_directionchange += 1;
         }
 
         // Makes the vessel grow at a certain rate (i.e. 30 microns/hr) (this is NOT elongation length!!!)
@@ -260,70 +268,64 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
             return;
         }
 
-        if (ticks_since_directionchange < PERSISTENCY_TIME) { //maybe this will add a persistency time ticker - Alex please check
-            ticks_since_directionchange += 1;
+        // only continue if there is enough VEGF around, if not then stay quiescent
+        if (G.VEGF.Get(Isq()) < VEGF_SENSITIVITY) {
             return;
-
         }
+
         if (start_vessel_growth) {
             int cellDivLocation; // stores the int version of the location where the cell will grow to
-            // TODO: ELONGATION LENGTH modifications
-                // some implementation ideas:
-                // 1) store of the time tick of the time it's changed direction, and change
-                // direction once time elapsed > persistency time, then find a new direction
-                // 2) keep a running tally of time since last change direction, and find a
-                // new direction once that tally > persistency time
-           // if ((elongationLength >= MAX_ELONGATION_LENGTH) || (Isq() == target) || (target == 0)) {
             // ALEX - LP question - could you better comment what each of these if statements is doing? Also, I am trying to determine if we also want to add
-            //in a branching delay time (typically 8 hrs) or if that is too complex and only rely on the branching probability. The main thing I want to make sure of
+            // in a branching delay time (typically 8 hrs) or if that is too complex and only rely on the branching probability. The main thing I want to make sure of
             // for this section though is that it only resets the ticker if it changes direction
-            if (( ticks_since_directionchange >= PERSISTENCY_TIME) || (Isq() == target) || (target == 0)){
-
+            if (( ticks_since_directionchange >= PERSISTENCY_TIME) || (target == 0)){ // took out if reached target
                 int highestConcentrationCoord = HighestConcentrationVEGF(); // find new target location: the location in the sight radius with the highest VEGF
-                highestConcentrationCoord = CalculateTargetTwiceAsFar(highestConcentrationCoord); // find a point in the same direction, but very far away, so you won't reach it: want to persist in that direction
+                highestConcentrationCoord = CalculateTargetScaleTargetCoord(highestConcentrationCoord); // find a point in the same direction, but very far away, so you won't reach it: want to persist in that direction
                 cellDivLocation = HoodClosestToTarget(highestConcentrationCoord); // and find the closest adjacent coordinate in the direction towards the highestConcentrationCoord
-
                 if ((highestConcentrationCoord > 0) && (cellDivLocation > 0)){ // If there is a location of highest concentration and there is an open adjacent spot... (the values will be 0 if none were found)
-                    G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, highestConcentrationCoord, 0, since_last_elongation, 0); // make a new head cell at cellDivLocation
+                    G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, highestConcentrationCoord, since_last_elongation, 0); // make a new head cell at cellDivLocation
                     InitVessel(BODY_CELL, this.length); // and make the old cell a body cell
-
                 }
 
                 // branching
 
-                // TODO: (for alex) check if branching probability is being properly modified.  I think it is, but I think it's worth a double check
                 if(G.rng.Double() < branching_probability){ // if the cell happens to branch (branching probability is a parameter of the cell, and is modified by a function CalculateBranchingProbability)
-
                     // the options for branching locations around the cell
                     int options = MapEmptyHood(G.divHood);
                     if (options >= 1) { // if there is an open nearby location, then branch there
-                        G.NewAgentSQ(G.divHood[G.rng.Int(options)]).InitVesselMigrationRate(HEAD_CELL, this.length + 1, 0, 0, 0, this.ticks_since_directionchange=0); // make a new head cell at the branching location
+                        G.NewAgentSQ(G.divHood[G.rng.Int(options)]).InitVesselMigrationRate(HEAD_CELL, this.length + 1, 0, 0, this.ticks_since_directionchange=0); // make a new head cell at the branching location
                         InitVessel(BODY_CELL, this.length); // make the old cell a body cell
                     }
                 }
-            } else {
+            } else if (Isq()!= target){ //added else if
                 // if not at max length and not at it's target location, then it has a target that it needs to get to.
                 cellDivLocation = HoodClosestToTarget(target); // find an open adjacent location closest to the target
-                G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, target, elongationLength, since_last_elongation, ticks_since_directionchange); // make a new cell there LP QUestion: how do I make ticks_since_direction change= 0
+                G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, target, since_last_elongation, ticks_since_directionchange); // make a new cell there LP QUestion: how do I make ticks_since_direction change= 0
                 InitVessel(BODY_CELL, this.length); // make the old cell a body cell
             }
-
-
         }
     }
 
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    public int CalculateTargetTwiceAsFar(int targetCoord){
+    public int CalculateTargetScaleTargetCoord(int targetCoord){
         assert G != null;
+        int scale = MAX_ELONGATION_LENGTH;
         int target_x = G.ItoX(targetCoord);
         int target_y = G.ItoY(targetCoord);
         int current_x = Xsq();
         int current_y = Ysq();
-        int scaled_vector_x = 4*(target_x-current_x);
-        int scaled_vector_y = 4*(target_y-current_y);
+        int scaled_vector_x = scale*(target_x-current_x);
+        int scaled_vector_y = scale*(target_y-current_y);
         int[] new_target = {(scaled_vector_x+current_x),(scaled_vector_y+current_y)};
+        while (!G.In(new_target[0], new_target[1])){
+            scale -= 1;
+            scaled_vector_x = scale*(target_x-current_x);
+            scaled_vector_y = scale*(target_y-current_y);
+            new_target[0] = scaled_vector_x+current_x;
+            new_target[1] = (scaled_vector_y+current_y);
+        }
         return G.I(new_target[0], new_target[1]);
     }
 
@@ -346,7 +348,8 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
         ConsumeVEGF();
 
         // initialize VEGF
-        InitializeVEGF();
+//        InitializeVEGF();
+        ExchangeMedia();
 
         // calculate branching probability
         CalculateBranchingProbability();

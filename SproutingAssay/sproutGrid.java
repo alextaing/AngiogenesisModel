@@ -42,8 +42,8 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public final static int MIGRATION_RATE_MICRONS_PER_HOUR = 30; // microns/hr
 
     // VESSEL PARAMETERS NEEDING PARAMETERIZED AND SENSITIVITY ANALYSIS
-    public final static double VEGF_SENSITIVITY = 0.001; // minimum VEGF to attract cell growth
-    public static double VESSEL_VEGF_INTAKE = 0.1; // percent of how much of the present VEGF is consumed when a blood vessel is nearby
+    public final static double VEGF_SENSITIVITY = 0.005; // minimum VEGF to attract cell growth
+    public static double VESSEL_VEGF_INTAKE = 0.07; // percent of how much of the present VEGF is consumed when a blood vessel is nearby
     public final static double INITIAL_PERCENT_HEAD_CELLS = 0.05; // probability of initializing an off branch from wound site
 
 

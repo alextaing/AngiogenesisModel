@@ -12,7 +12,7 @@ import HAL.Util;
 import java.util.ArrayList;
 
 import static SproutingAssay.sproutGrid.MAX_ELONGATION_LENGTH;
-import static SproutingAssay.sproutGrid.PERSISTENCY_TIME;
+import static SproutingAssay.sproutGrid.MAX_ELONGATION_LENGTH_MICRONS;
 
 public class sproutAgent extends AgentSQ2D<sproutGrid> {
 
@@ -49,7 +49,8 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
     int target;
     double migration_rate = sproutGrid.MIGRATION_RATE;
     double branching_probability;
-    int since_last_elongation;
+    int since_last_growth;
+    int elongation_length;
     int ticks_since_directionchange;
     public static boolean start_vessel_growth = true; // is set to true when vessels begin to invade
     boolean heparin_particle_release_VEGF = true;
@@ -169,13 +170,14 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
      * @param length the current length of the vessel
      * @param target the location where the vessel is growing towards
      */
-    public void InitVesselMigrationRate(int type, int length, int target, int since_last_elongation, int ticks_since_directionchange) {
+    public void InitVesselMigrationRate(int type, int length, int target, int since_last_elongation, int ticks_since_directionchange, int elongation_length) {
         this.type = type;
         this.length = length;
         this.target = target;
-        this.since_last_elongation = since_last_elongation;
+        this.since_last_growth = since_last_elongation;
         this.color = HEAD_CELL_COLOR;
         this.ticks_since_directionchange = ticks_since_directionchange;
+        this.elongation_length = elongation_length;
     }
 
     /**
@@ -229,8 +231,8 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
         }
 
         // Makes the vessel grow at a certain rate (i.e. 30 microns/hr) (this is NOT elongation length!!!)
-        if (since_last_elongation < migration_rate){ // if it's not yet time to migrate, then don't migrate yet.
-            since_last_elongation += 1;
+        if (since_last_growth < migration_rate){ // if it's not yet time to migrate, then don't migrate yet.
+            since_last_growth += 1;
             return;
         }
 
@@ -241,15 +243,12 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
 
         if (start_vessel_growth) {
             int cellDivLocation; // stores the int version of the location where the cell will grow to
-            // ALEX - LP question - could you better comment what each of these if statements is doing? Also, I am trying to determine if we also want to add
-            // in a branching delay time (typically 8 hrs) or if that is too complex and only rely on the branching probability. The main thing I want to make sure of
-            // for this section though is that it only resets the ticker if it changes direction
-            if (( ticks_since_directionchange >= PERSISTENCY_TIME) || (target == 0)){ // took out if reached target
+            if ((( ticks_since_directionchange >= PERSISTENCY_TIME) && (elongation_length >= MAX_ELONGATION_LENGTH)) || (target == 0)){
                 int highestConcentrationCoord = HighestConcentrationVEGF(); // find new target location: the location in the sight radius with the highest VEGF
                 highestConcentrationCoord = CalculateTargetScaleTargetCoord(highestConcentrationCoord); // find a point in the same direction, but very far away, so you won't reach it: want to persist in that direction
                 cellDivLocation = HoodClosestToTarget(highestConcentrationCoord); // and find the closest adjacent coordinate in the direction towards the highestConcentrationCoord
                 if ((highestConcentrationCoord > 0) && (cellDivLocation > 0)){ // If there is a location of highest concentration and there is an open adjacent spot... (the values will be 0 if none were found)
-                    G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, highestConcentrationCoord, since_last_elongation, 0); // make a new head cell at cellDivLocation
+                    G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, highestConcentrationCoord, since_last_growth, 0, 1); // make a new head cell at cellDivLocation
                     InitVessel(BODY_CELL, this.length); // and make the old cell a body cell
                 }
 
@@ -259,14 +258,14 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
                     // the options for branching locations around the cell
                     int options = MapEmptyHood(G.divHood);
                     if (options >= 1) { // if there is an open nearby location, then branch there
-                        G.NewAgentSQ(G.divHood[G.rng.Int(options)]).InitVesselMigrationRate(HEAD_CELL, this.length + 1, 0, 0, this.ticks_since_directionchange=0); // make a new head cell at the branching location
+                        G.NewAgentSQ(G.divHood[G.rng.Int(options)]).InitVesselMigrationRate(HEAD_CELL, this.length + 1, 0, 0, this.ticks_since_directionchange=0, 1); // make a new head cell at the branching location
                         InitVessel(BODY_CELL, this.length); // make the old cell a body cell
                     }
                 }
-            } else if (Isq()!= target){ //added else if
+            } else if (elongation_length < MAX_ELONGATION_LENGTH){ //added else if
                 // if not at max length and not at it's target location, then it has a target that it needs to get to.
                 cellDivLocation = HoodClosestToTarget(target); // find an open adjacent location closest to the target
-                G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, target, since_last_elongation, ticks_since_directionchange); // make a new cell there LP QUestion: how do I make ticks_since_direction change= 0
+                G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, target, since_last_growth, ticks_since_directionchange, elongation_length + 1); // make a new cell there LP QUestion: how do I make ticks_since_direction change= 0
                 InitVessel(BODY_CELL, this.length); // make the old cell a body cell
             }
         }
@@ -277,7 +276,7 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
 
     public int CalculateTargetScaleTargetCoord(int targetCoord){
         assert G != null;
-        int scale = MAX_ELONGATION_LENGTH;
+        int scale = 10;
         int target_x = G.ItoX(targetCoord);
         int target_y = G.ItoY(targetCoord);
         int current_x = Xsq();

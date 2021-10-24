@@ -25,13 +25,14 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
 
     public static int HEAD_CELL_COLOR = Util.RED;
     public static int BODY_CELL_COLOR = Util.RED;
-    public static int MAP_PARTICLE_COLOR = Util.RGB(23.0 / 255, 28.0 / 255, 173.0 / 255); // normal MAP;
-    public static int HEPARIN_MAP_COLOR = Util.RGB(48.0 / 255, 191.0 / 255, 217.0 / 255); // Heparin MAP;
+    public static int MAP_PARTICLE_COLOR = Util.RGB(128.0 / 255, 128.0 / 255, 128.0 / 255); // normal MAP;
+    public static int HEPARIN_MAP_COLOR = Util.RGB(0.0 / 255, 0.0 / 255, 217.0 / 255); // Heparin MAP;
 
     public static double VESSEL_VEGF_INTAKE = sproutGrid.VESSEL_VEGF_INTAKE;
     public final static int VESSEL_GROWTH_DELAY = sproutGrid.VESSEL_GROWTH_DELAY;
     public final static double VEGF_SENSITIVITY = sproutGrid.VEGF_SENSITIVITY;
     //public final static int MAX_ELONGATION_LENGTH = sproutGrid.MAX_ELONGATION_LENGTH;
+    public final static double PERSISTENCY_TIME = sproutGrid.PERSISTENCY_TIME; //IS THIS NECESSARY HERE??
     public static final double HEP_MAP_VEGF_RELEASE = sproutGrid.HEP_MAP_VEGF_RELEASE;
     public static final double MEDIA_EXCHANGE_SCHEDULE_TICKS = sproutGrid.MEDIA_EXCHANGE_SCHEDULE_TICKS;
 

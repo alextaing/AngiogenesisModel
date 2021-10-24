@@ -34,38 +34,42 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public final static int TRIALS = 20;
     public final static double[] HEPARIN_PERCENTAGES = new double[]{0.1}; //
 
-    // VESSEL PARAMETERS
-    public static final int CULTURE_RADIUS_MICRONS = 135; // microns
-    public final static int SIGHT_RADIUS_MICRONS = 20; // microns
+    // VESSEL PARAMETERS FIXED!
+    public static final int CULTURE_RADIUS_MICRONS = 140; // radius of the initial spheroid in microns
+    public final static int SIGHT_RADIUS_MICRONS = 20; // how far a EC can sense in microns
+    public final static int PERSISTENCY_TIME_PER_HOUR = 3; // time between a EC changes direction in hours
     public static final int MAX_ELONGATION_LENGTH_MICRONS = 40; // microns
-    public final static double VEGF_SENSITIVITY = 0.005; // minimum VEGF to attract cell growth
-    public static double VESSEL_VEGF_INTAKE = 0.01; // percent of how much of the present VEGF is consumed when a blood vessel is nearby
-    public final static double INITIAL_PERCENT_HEAD_CELLS = 0.05; // probability of initializing an off branch from wound site
-    public final static int PERSISTENCY_TIME_PER_HOUR = 3; // persistency time of endothelial cell is 3 hrs
-
-    // MIGRATION RATE AND BRANCHING PROBABILITY
     public final static int MIGRATION_RATE_MICRONS_PER_HOUR = 30; // microns/hr
+
+    // VESSEL PARAMETERS NEEDING PARAMETERIZED AND SENSITIVITY ANALYSIS
+    public final static double VEGF_SENSITIVITY = 0.001; // minimum VEGF to attract cell growth
+    public static double VESSEL_VEGF_INTAKE = 0.1; // percent of how much of the present VEGF is consumed when a blood vessel is nearby
+    public final static double INITIAL_PERCENT_HEAD_CELLS = 0.05; // probability of initializing an off branch from wound site
+
+
+    // BRANCHING PROBABILITY AND THRESHOLDS_ PROBABILITIES NEED PARAMETERIZED BUT COULD STAY FIXED
     public final static double LOW_BRANCHING_PROBABILITY= 0.4; // probability of branching while VEGF is under LOW_MED_VEGF_THRESHOLD
     public final static double LOW_MED_VEGF_THRESHOLD = 0.33;
     public final static double MED_BRANCHING_PROBABILITY= 0.6; // probability of branching while VEGF is between LOW_MED_VEGF_THRESHOLD and MED_HIGH_VEGF_THRESHOLD
     public final static double MED_HIGH_VEGF_THRESHOLD = 0.66;
     public final static double HIGH_BRANCHING_PROBABILITY= 0.9; // probability of branching while VEGF is above MED_HIGH_VEGF_THRESHOLD
 
-    // MAP GEL PARAMETERS
-    public final static int MAP_RADIUS_MICRONS = 30; // microns
-    public final static int MAP_SPACING_MICRONS = 20; // microns 15-20
+    // MAP GEL PARAMETERS - FIXED
+    public final static int MAP_RADIUS_MICRONS = 40; // microns
+    public final static int MAP_SPACING_MICRONS = 15; // microns
     public final static double HEP_MAP_VEGF_RELEASE = 1.0; // how much VEGF to add per media exchange
     public final static double MEDIA_EXCHANGE_SCHEDULE_HOURS = 24; // exchange media to refresh VEGF every __ hours
 
-    // MAIN METHOD PARAMETERS
+
+    // MAIN METHOD PARAMETERS - FIXED
     public final static int x_MICRONS = 2000; // microns
     public final static int y_MICRONS = 2000; // microns
     public final static int SCALE_FACTOR = 2;
     public final static int TICK_PAUSE = 1;
     public final static int RUNTIME_HOURS = 48; // how long will the simulation run?
-    public final static double VESSEL_GROWTH_DELAY_HOURS = 1;
+    public final static double VESSEL_GROWTH_DELAY_HOURS = 2;
 
-    // DIFFUSION
+    // DIFFUSION - NEEDS PARAMETERIZED
     public final static double DIFFUSION_COEFFICIENT = 0.07; // diffusion coefficient
 
     // CONVERSIONS

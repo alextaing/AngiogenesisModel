@@ -18,7 +18,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 // ----------------------------------------------- GRID ZONE -----------------------------------------------------------
 
@@ -73,22 +72,22 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public final static double DIFFUSION_COEFFICIENT = 0.07; // diffusion coefficient
 
     // CONVERSIONS
-    public final static int MICRONS_PER_MM = 10; // 1 pixel represents 10 microns
+    public final static int MICRONS_PER_PIXEL = 10; // 1 pixel represents 10 microns
     public final static int TICKS_PER_HOUR = 60; // 1 tick represents 1 minute
     // vessels
-    public static final int CULTURE_RADIUS = CULTURE_RADIUS_MICRONS/MICRONS_PER_MM;
-    public final static int SIGHT_RADIUS = SIGHT_RADIUS_MICRONS/MICRONS_PER_MM; // radius to detect VEGF
-    public static final int MAX_ELONGATION_LENGTH = MAX_ELONGATION_LENGTH_MICRONS/MICRONS_PER_MM;
-    public final static double MIGRATION_RATE = 1/((MIGRATION_RATE_MICRONS_PER_HOUR/(double)MICRONS_PER_MM)*(1/(double)TICKS_PER_HOUR)); // convert to "elongate every ___ ticks"
+    public static final int CULTURE_RADIUS = CULTURE_RADIUS_MICRONS/ MICRONS_PER_PIXEL;
+    public final static int SIGHT_RADIUS = SIGHT_RADIUS_MICRONS/ MICRONS_PER_PIXEL; // radius to detect VEGF
+    public static final int MAX_ELONGATION_LENGTH = MAX_ELONGATION_LENGTH_MICRONS/ MICRONS_PER_PIXEL;
+    public final static double MIGRATION_RATE = 1/((MIGRATION_RATE_MICRONS_PER_HOUR/(double) MICRONS_PER_PIXEL)*(1/(double)TICKS_PER_HOUR)); // convert to "elongate every ___ ticks"
     public final static double PERSISTENCY_TIME = PERSISTENCY_TIME_PER_HOUR * TICKS_PER_HOUR;
 
     // particles
-    public final static int MAP_RADIUS = MAP_RADIUS_MICRONS/MICRONS_PER_MM; // radius of MAP particle
-    public final static int MAP_SPACING = MAP_RADIUS_MICRONS/MICRONS_PER_MM + MAP_SPACING_MICRONS/MICRONS_PER_MM; // spacing radius between MAP gel centers
+    public final static int MAP_RADIUS = MAP_RADIUS_MICRONS/ MICRONS_PER_PIXEL; // radius of MAP particle
+    public final static int MAP_SPACING = MAP_RADIUS_MICRONS/ MICRONS_PER_PIXEL + MAP_SPACING_MICRONS/ MICRONS_PER_PIXEL; // spacing radius between MAP gel centers
     public final static double MEDIA_EXCHANGE_SCHEDULE_TICKS = MEDIA_EXCHANGE_SCHEDULE_HOURS*TICKS_PER_HOUR;
     // grid
-    public final static int x = x_MICRONS/MICRONS_PER_MM; // microns
-    public final static int y = y_MICRONS/MICRONS_PER_MM; // microns
+    public final static int x = x_MICRONS/ MICRONS_PER_PIXEL; // microns
+    public final static int y = y_MICRONS/ MICRONS_PER_PIXEL; // microns
     // runtime
     public final static int TIMESTEPS = RUNTIME_HOURS*TICKS_PER_HOUR; // how long will the simulation run?
     public final static int VESSEL_GROWTH_DELAY = (int)VESSEL_GROWTH_DELAY_HOURS*TICKS_PER_HOUR;
@@ -256,7 +255,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
         
         // Total vessel length
         int numVessels = countVessels();
-        CSV.append((numVessels-initialCultureSize)*MICRONS_PER_MM).append(","); // total length of vessels
+        CSV.append((numVessels-initialCultureSize)* MICRONS_PER_PIXEL).append(","); // total length of vessels
         
         // Fold change
         double foldChange = numVessels/(double)initialCultureSize;

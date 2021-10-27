@@ -29,9 +29,10 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
      */
     // BATCH RUNS
     public final static boolean BATCH_RUN = true;
-    public final static boolean EXPORT_DATA = false;
-    public final static int TRIALS = 20;
+    public final static boolean EXPORT_DATA = true;
+    public final static int TRIALS = 10;
     public final static double[] HEPARIN_PERCENTAGES = new double[]{0.1}; //
+    //public final static double[] DIFFUSION_COEFFICIENT = new double[]{0.01, 0.04, 0.07, 0.10, 0.13};
 
     // VESSEL PARAMETERS FIXED!
     public static final int CULTURE_RADIUS_MICRONS = 140; // radius of the initial spheroid in microns
@@ -41,9 +42,9 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public final static int MIGRATION_RATE_MICRONS_PER_HOUR = 30; // microns/hr
 
     // VESSEL PARAMETERS NEEDING PARAMETERIZED AND SENSITIVITY ANALYSIS
-    public final static double VEGF_SENSITIVITY = 0.005; // minimum VEGF to attract cell growth
-    public static double VESSEL_VEGF_INTAKE = 0.07; // percent of how much of the present VEGF is consumed when a blood vessel is nearby
-    public final static double INITIAL_PERCENT_HEAD_CELLS = 0.05; // probability of initializing an off branch from wound site
+    public final static double VEGF_SENSITIVITY = 0.001; // minimum VEGF to attract cell growth
+    public static double VESSEL_VEGF_INTAKE = 0.1; // percent of how much of the present VEGF is consumed when a blood vessel is nearby
+    public final static double INITIAL_PERCENT_HEAD_CELLS = 0.1; // probability of initializing an off branch from wound site
 
 
     // BRANCHING PROBABILITY AND THRESHOLDS_ PROBABILITIES NEED PARAMETERIZED BUT COULD STAY FIXED
@@ -58,7 +59,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public final static int MAP_SPACING_MICRONS = 15; // microns
     public final static double HEP_MAP_VEGF_RELEASE = 1.0; // how much VEGF to add per media exchange
     public final static double MEDIA_EXCHANGE_SCHEDULE_HOURS = 24; // exchange media to refresh VEGF every __ hours
-
+    //public final static double HEPARIN_PERCENTAGES = 0.1; // percentage of heparin particles
 
     // MAIN METHOD PARAMETERS - FIXED
     public final static int x_MICRONS = 2000; // microns
@@ -259,7 +260,26 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
         
         // Fold change
         double foldChange = numVessels/(double)initialCultureSize;
-        CSV.append(foldChange);
+        CSV.append(foldChange).append(",");
+
+        //diffusion coefficient
+        CSV.append(DIFFUSION_COEFFICIENT).append(",");
+
+        //vegf sensitivity
+        CSV.append(VEGF_SENSITIVITY).append(",");
+
+        //vessel growth delay
+        CSV.append(VESSEL_GROWTH_DELAY_HOURS).append(",");
+
+        //initial percent head cells
+        CSV.append(INITIAL_PERCENT_HEAD_CELLS).append(",");
+
+        //vessel vegf intake
+        CSV.append(VESSEL_VEGF_INTAKE).append(",");
+
+        //hours
+        CSV.append(RUNTIME_HOURS);
+
     }
 
 
@@ -283,7 +303,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
         Path fileName= Path.of("SproutingAssay\\SproutingAssayData\\" + timestamp_string + ".csv");
         int i = 1;
         while (Files.exists(fileName)){
-            fileName= Path.of("SproutingAssay\\SproutingAssayData\\" + timestamp_string + " (" + i + ")" + ".csv");
+            fileName= Path.of("SproutingAssay\\SproutingAssayData\\" + timestamp_string + " (" + i + ")" + "sensitivity.csv");
             i++;
         }
         StringBuilder dataset = CSV;
@@ -292,7 +312,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
 
     
     public void Initialize_CSV(){
-        CSV.append("Heparin Percentage (%), Total Vessel Length (microns), Fold Change (%)");
+        CSV.append("Heparin Percentage (%), Total Vessel Length (microns), Fold Change (%), Diffusion Coefficient, VEGF Sensitivity, Vessel Growth Delay, Initial percent head cells, VEGF intake, hours");
     }
 
 

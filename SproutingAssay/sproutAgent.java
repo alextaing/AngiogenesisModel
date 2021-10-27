@@ -8,11 +8,7 @@ package SproutingAssay;
 
 import HAL.GridsAndAgents.AgentSQ2D;
 import HAL.Util;
-
 import java.util.ArrayList;
-
-import static SproutingAssay.sproutGrid.MAX_ELONGATION_LENGTH;
-import static SproutingAssay.sproutGrid.MAX_ELONGATION_LENGTH_MICRONS;
 
 public class sproutAgent extends AgentSQ2D<sproutGrid> {
 
@@ -31,7 +27,7 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
     public static double VESSEL_VEGF_INTAKE = sproutGrid.VESSEL_VEGF_INTAKE;
     public final static int VESSEL_GROWTH_DELAY = sproutGrid.VESSEL_GROWTH_DELAY;
     public final static double VEGF_SENSITIVITY = sproutGrid.VEGF_SENSITIVITY;
-    //public final static int MAX_ELONGATION_LENGTH = sproutGrid.MAX_ELONGATION_LENGTH;
+    public final static int MAX_ELONGATION_LENGTH = sproutGrid.MAX_ELONGATION_LENGTH;
     public final static double PERSISTENCY_TIME = sproutGrid.PERSISTENCY_TIME; //IS THIS NECESSARY HERE??
     public static final double HEP_MAP_VEGF_RELEASE = sproutGrid.HEP_MAP_VEGF_RELEASE;
     public static final double MEDIA_EXCHANGE_SCHEDULE_TICKS = sproutGrid.MEDIA_EXCHANGE_SCHEDULE_TICKS;

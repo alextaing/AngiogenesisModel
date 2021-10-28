@@ -19,14 +19,14 @@ import java.nio.file.Path;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 
-// ----------------------------------------------- GRID ZONE -----------------------------------------------------------
-
-
 public class sproutGrid extends AgentGrid2D<sproutAgent> {
 
-    /**
-     * PARAMETERS!
-     */
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////      PARAMETERS      /////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
     // BATCH RUNS
     public final static boolean BATCH_RUN = true;
     public final static boolean EXPORT_DATA = true;
@@ -45,7 +45,6 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public final static double VEGF_SENSITIVITY = 0.001; // minimum VEGF to attract cell growth
     public static double VESSEL_VEGF_INTAKE = 0.1; // percent of how much of the present VEGF is consumed when a blood vessel is nearby
     public final static double INITIAL_PERCENT_HEAD_CELLS = 0.1; // probability of initializing an off branch from wound site
-
 
     // BRANCHING PROBABILITY AND THRESHOLDS_ PROBABILITIES NEED PARAMETERIZED BUT COULD STAY FIXED
     public final static double LOW_BRANCHING_PROBABILITY= 0.4; // probability of branching while VEGF is under LOW_MED_VEGF_THRESHOLD
@@ -72,9 +71,16 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     // DIFFUSION - NEEDS PARAMETERIZED
     public final static double DIFFUSION_COEFFICIENT = 0.07; // diffusion coefficient
 
-    // CONVERSIONS
+
+
+/////////////////////////////////////////////      CONVERSIONS      ////////////////////////////////////////////////////
+
+
+
+    // FACTORS
     public final static int MICRONS_PER_PIXEL = 10; // 1 pixel represents 10 microns
     public final static int TICKS_PER_HOUR = 60; // 1 tick represents 1 minute
+
     // vessels
     public static final int CULTURE_RADIUS = CULTURE_RADIUS_MICRONS/ MICRONS_PER_PIXEL;
     public final static int SIGHT_RADIUS = SIGHT_RADIUS_MICRONS/ MICRONS_PER_PIXEL; // radius to detect VEGF
@@ -97,7 +103,10 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public static StringBuilder CSV = new StringBuilder();
 
 
-    //------------------------------------------------------------------------------------------------------------------
+
+//////////////////////////////////////////////      MISC VARIABLES      ////////////////////////////////////////////////
+
+
 
     public static int HEAD_CELL = sproutAgent.HEAD_CELL;
     public static int BODY_CELL = sproutAgent.BODY_CELL;
@@ -111,6 +120,13 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     int[] MAP_space = Util.CircleHood(true, MAP_SPACING); // "cushion" between MAP particles
 
     PDEGrid2D VEGF; // Initialize PDE Grid
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////      METHODS      //////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 
     /**
      * Heparin Grid constructor
@@ -316,7 +332,11 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     }
 
 
-// ----------------------------------------------- MAIN METHOD ---------------------------------------------------------
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////      MAIN METHOD      /////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
     public static void main(String[] args) throws IOException {
         GridWindow gridWin = new GridWindow("Endothelial Cells",x, y, SCALE_FACTOR); // window for agents
         GridWindow VEGFWin = new GridWindow("VEGF Diffusion", x, y, SCALE_FACTOR); // window for diffusion

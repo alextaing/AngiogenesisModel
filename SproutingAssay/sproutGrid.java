@@ -30,8 +30,10 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     // BATCH RUNS
     public final static boolean BATCH_RUN = true;
     public final static boolean EXPORT_DATA = true;
-    public final static int TRIALS = 10;
-    public final static double[] HEPARIN_PERCENTAGES = new double[]{0.1}; //
+    public final static boolean EXPORT_TIME_DATA = true;
+    public final static int TRIALS = 2;
+    public final static double[] HEPARIN_PERCENTAGES = new double[]{0.1,0.15, 0.2};
+    public final static double FOLD_CHANGE_SAMPLE_TIME = 0.25 ; // every ___ hours
     //public final static double[] DIFFUSION_COEFFICIENT = new double[]{0.01, 0.04, 0.07, 0.10, 0.13};
 
     // VESSEL PARAMETERS FIXED!
@@ -75,8 +77,6 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
 
 /////////////////////////////////////////////      CONVERSIONS      ////////////////////////////////////////////////////
 
-
-
     // FACTORS
     public final static int MICRONS_PER_PIXEL = 10; // 1 pixel represents 10 microns
     public final static int TICKS_PER_HOUR = 60; // 1 tick represents 1 minute
@@ -92,26 +92,22 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public final static int MAP_RADIUS = MAP_RADIUS_MICRONS/ MICRONS_PER_PIXEL; // radius of MAP particle
     public final static int MAP_SPACING = MAP_RADIUS_MICRONS/ MICRONS_PER_PIXEL + MAP_SPACING_MICRONS/ MICRONS_PER_PIXEL; // spacing radius between MAP gel centers
     public final static double MEDIA_EXCHANGE_SCHEDULE_TICKS = MEDIA_EXCHANGE_SCHEDULE_HOURS*TICKS_PER_HOUR;
+
     // grid
     public final static int x = x_MICRONS/ MICRONS_PER_PIXEL; // microns
     public final static int y = y_MICRONS/ MICRONS_PER_PIXEL; // microns
+
     // runtime
     public final static int TIMESTEPS = RUNTIME_HOURS*TICKS_PER_HOUR; // how long will the simulation run?
-    public final static int VESSEL_GROWTH_DELAY = (int)VESSEL_GROWTH_DELAY_HOURS*TICKS_PER_HOUR;
-
-    // DATA EXPORT
-    public static StringBuilder CSV = new StringBuilder();
+    public final static int VESSEL_GROWTH_DELAY = (int)(VESSEL_GROWTH_DELAY_HOURS*TICKS_PER_HOUR);
+    public final static int FOLD_CHANGE_SAMPLE_TICKS = (int)(FOLD_CHANGE_SAMPLE_TIME*TICKS_PER_HOUR); // take a sample every ____ ticks
 
 
 
 //////////////////////////////////////////////      MISC VARIABLES      ////////////////////////////////////////////////
 
-
-
     public static int HEAD_CELL = sproutAgent.HEAD_CELL;
     public static int BODY_CELL = sproutAgent.BODY_CELL;
-    public static int MAP_PARTICLE = sproutAgent.MAP_PARTICLE;
-    public static int HEPARIN_MAP = sproutAgent.HEPARIN_MAP;
 
     Rand rng = new Rand();
     int[] divHood = Util.VonNeumannHood(false); // neighborhood for division
@@ -122,8 +118,19 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     PDEGrid2D VEGF; // Initialize PDE Grid
 
 
+
+////////////////////////////////////////////////      DATA EXPORT      /////////////////////////////////////////////////
+
+    public static StringBuilder CSV = new StringBuilder();
+    public static StringBuilder TIME_CSV = new StringBuilder();
+    public int initialCultureSize;
+    public ArrayList<Double> foldChangeOverTime = new ArrayList<>();
+    public ArrayList<Double> FCTime = new ArrayList<>();
+
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////      METHODS      //////////////////////////////////////////////////////////
+//////////////////////////////////////////////      METHODS      ///////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -202,7 +209,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
 
         int center = I((Xdim()/2), (Ydim()/2));
         for (int i = 0; i < (model.Xdim()*model.Ydim()); i++) {
-            if (distance(ItoX(i), ItoY(i), ItoX(center), ItoY(center)) < (int)(CULTURE_RADIUS)) {
+            if (distance(ItoX(i), ItoY(i), ItoX(center), ItoY(center)) < (CULTURE_RADIUS)) {
                 if (Math.random() < startVascularChance) { // may be head cells or body cells
                     model.NewAgentSQ(i).InitVessel(sproutAgent.HEAD_CELL, 0);
                 } else {
@@ -220,8 +227,6 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public void initMAPParticles(sproutGrid model, double Heparin_Percent){
 
         // Iterate through every coordinate in the grid
-        int center = I((Xdim()/2), (Ydim()-1));
-        double rad = Math.min(model.Xdim()/2, model.Ydim());
         for (int i = 0; i < x*y; i++) {
             int cellType = sproutAgent.MAP_PARTICLE; // assume that it will be a MAP particle
             double chance = Math.random();
@@ -253,7 +258,6 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
                         break;
                     }
                 }
-
             }
         }
         return vessel_unit_counter;
@@ -263,7 +267,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     /**
      * Collects the data for export
      */
-    public void CollectData(double heparinPercentage, int initialCultureSize){
+    public void CollectData(double heparinPercentage){
         // vessel cells, MAP Particle, and Heparin MAP Data
         CSV.append("\n");
         
@@ -296,6 +300,24 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
         //hours
         CSV.append(RUNTIME_HOURS);
 
+        // TIME DATA
+
+        if (EXPORT_TIME_DATA){
+            if (TIME_CSV.length() == 0){
+                TIME_CSV.append("Time (hours), ");
+                for (Double time : FCTime) {
+                    TIME_CSV.append(time).append(",");
+                }
+                TIME_CSV.append("\n");
+            }
+            TIME_CSV.append("[").append((int) (heparinPercentage * 100)).append("%] Fold Change, ");
+            for (Double TimeFoldChange : foldChangeOverTime) {
+                TIME_CSV.append(TimeFoldChange).append(",");
+            }
+            TIME_CSV.append("\n");
+
+        }
+
     }
 
 
@@ -316,14 +338,22 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
         }
 
         String timestamp_string = ((timestamp.toString().replace(" ","_").replace(".", "-").replace(":", "-")).substring(0, 10) +" " + (percentages) + "%");
-        Path fileName= Path.of("SproutingAssay\\SproutingAssayData\\" + timestamp_string + ".csv");
+        Path fileName= Path.of("SproutingAssay\\SproutingAssayData\\" + timestamp_string + "sensitivity.csv");
+        Path timeDataFileName =  Path.of("SproutingAssay\\SproutingAssayData\\" + timestamp_string + "sensitivity_timeData.csv");
         int i = 1;
         while (Files.exists(fileName)){
             fileName= Path.of("SproutingAssay\\SproutingAssayData\\" + timestamp_string + " (" + i + ")" + "sensitivity.csv");
+            timeDataFileName =  Path.of("SproutingAssay\\SproutingAssayData\\" + timestamp_string + " (" + i + ")" + "sensitivity_timeData.csv");
             i++;
         }
         StringBuilder dataset = CSV;
         Files.writeString(fileName, dataset);
+
+        if (EXPORT_TIME_DATA){
+            StringBuilder timeDataset = TIME_CSV;
+            Files.writeString(timeDataFileName, timeDataset);
+        }
+
     }
 
     
@@ -332,9 +362,24 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     }
 
 
+    public void CalculateFoldChangeOverTime(){
+        if (GetTick()%FOLD_CHANGE_SAMPLE_TICKS == 0){
+            FCTime.add(((double)GetTick())/TICKS_PER_HOUR);
+            int currentVesselCount = countVessels();
+            double foldChange = (double)(currentVesselCount)/initialCultureSize;
+            foldChangeOverTime.add(foldChange);
+        }
+    }
+
+    public void ClearFoldChange() {
+        this.foldChangeOverTime.clear();
+    }
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////      MAIN METHOD      /////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 
     public static void main(String[] args) throws IOException {
@@ -358,7 +403,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
             model.initMAPParticles(model, HEPARIN_PERCENTAGES[0]);
 
             model.Initialize_CSV();
-            int culture_size = model.countVessels(); // used for the initial vessel count in fold change
+            model.initialCultureSize= model.countVessels(); // used for the initial vessel count in fold change
             for (int i = 0; i < TIMESTEPS; i++){
                 // pause
                 gridWin.TickPause(TICK_PAUSE); // how fast the simulation runs
@@ -368,9 +413,10 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
                 // draw
                 model.DrawPDE(VEGFWin); // draw the PDE window
                 model.DrawModel(gridWin); // draw the agent window
+                model.CalculateFoldChangeOverTime();
             }
             if (EXPORT_DATA){
-                model.CollectData(HEPARIN_PERCENTAGES[0], culture_size);
+                model.CollectData(HEPARIN_PERCENTAGES[0]);
                 model.ExportData();
             }
 
@@ -382,13 +428,12 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
                     // initialize
                     model.Reset(); // reset the model
                     model.ResetTick(); // reset the time tick
+                    model.ClearFoldChange();
                     model.VEGF = new PDEGrid2D(x, y); // initialize the diffusion grid
                     model.initVesselsCircleCulture(model, INITIAL_PERCENT_HEAD_CELLS); // initialize vessels
-//                    model.initHealthyTissue(model);
                     model.initMAPParticles(model, heparinPercentage); // initialize MAP particles
 
-                    int culture_size = model.countVessels(); // used for the initial vessel count in fold change
-
+                    model.initialCultureSize= model.countVessels(); // used for the initial vessel count in fold change
                     for (int i = 0; i < TIMESTEPS; i++){
                         // pause
                         gridWin.TickPause(TICK_PAUSE); // how fast the simulation runs
@@ -398,9 +443,10 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
                         // draw
                         model.DrawPDE(VEGFWin); // draw the PDE window
                         model.DrawModel(gridWin); // draw the agent window
+                        model.CalculateFoldChangeOverTime();
                     }
                     if (EXPORT_DATA){
-                        model.CollectData(heparinPercentage, culture_size);
+                        model.CollectData(heparinPercentage);
                     }
                 }
             }

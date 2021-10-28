@@ -30,7 +30,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     // BATCH RUNS
     public final static boolean BATCH_RUN = true;
     public final static boolean EXPORT_DATA = true;
-    public final static boolean EXPORT_TIME_DATA = true;
+    public final static boolean EXPORT_TIME_DATA = true; // (note that EXPORT_DATA must also be true as well to export time data)
     public final static int TRIALS = 2;
     public final static double[] HEPARIN_PERCENTAGES = new double[]{0.1,0.15, 0.2};
     public final static double FOLD_CHANGE_SAMPLE_TIME = 0.25 ; // every ___ hours

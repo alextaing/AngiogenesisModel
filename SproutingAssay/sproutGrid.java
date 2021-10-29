@@ -47,7 +47,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public final static double VEGF_SENSITIVITY = 0.001; // minimum VEGF to attract cell growth
     public static double VESSEL_VEGF_INTAKE = 0.1; // percent of how much of the present VEGF is consumed when a blood vessel is nearby
     public final static double INITIAL_PERCENT_HEAD_CELLS = 0.1; // probability of initializing an off branch from wound site
-
+    public final static double VEGF_DEGRADATION_RATE = 0.01;//
     // BRANCHING PROBABILITY AND THRESHOLDS_ PROBABILITIES NEED PARAMETERIZED BUT COULD STAY FIXED
     public final static double LOW_BRANCHING_PROBABILITY= 0.4; // probability of branching while VEGF is under LOW_MED_VEGF_THRESHOLD
     public final static double LOW_MED_VEGF_THRESHOLD = 0.33;

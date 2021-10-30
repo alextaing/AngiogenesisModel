@@ -19,7 +19,8 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
     public static int MAP_PARTICLE = 2;
     public static int HEPARIN_MAP = 3;
 
-    public static int HEAD_CELL_COLOR = Util.RED;
+//    public static int HEAD_CELL_COLOR = Util.RED;
+    public static int HEAD_CELL_COLOR = Util.GREEN; // so that you can see head cell locations
     public static int BODY_CELL_COLOR = Util.RED;
     public static int MAP_PARTICLE_COLOR = Util.RGB(128.0 / 255, 128.0 / 255, 128.0 / 255); // normal MAP;
     public static int HEPARIN_MAP_COLOR = Util.RGB(0.0 / 255, 0.0 / 255, 217.0 / 255); // Heparin MAP;
@@ -155,7 +156,11 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
     public void InitVessel(int type, int length) {
         this.type = type;
         this.length = length;
-        this.color = HEAD_CELL_COLOR;
+        if (type == HEAD_CELL){
+            this.color = HEAD_CELL_COLOR;
+        } else if (type == BODY_CELL){
+            this.color = BODY_CELL_COLOR;
+        }
     }
 
     /**
@@ -247,7 +252,6 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
                 }
 
                 // branching
-
                 if(G.rng.Double() < branching_probability){ // if the cell happens to branch (branching probability is a parameter of the cell, and is modified by a function CalculateBranchingProbability)
                     // the options for branching locations around the cell
                     int options = MapEmptyHood(G.divHood);

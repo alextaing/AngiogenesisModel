@@ -58,7 +58,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     // MAP GEL PARAMETERS - FIXED
     public final static int MAP_RADIUS_MICRONS = 40; // microns
     public final static int MAP_SPACING_MICRONS = 15; // microns
-    public final static double HEP_MAP_VEGF_RELEASE = 1.0; // how much VEGF to add per media exchange
+    public final static double HEP_MAP_VEGF_RELEASE = 1; // how much VEGF to add per media exchange
     public final static double MEDIA_EXCHANGE_SCHEDULE_HOURS = 24; // exchange media to refresh VEGF every __ hours
     //public final static double HEPARIN_PERCENTAGES = 0.1; // percentage of heparin particles
 
@@ -203,15 +203,17 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     /**
      * Initializes the vessels at both side of the wound
      * @param model the model to draw the vessels in
-     * @param startVascularChance ratio of head to body vessels in wound edge
      */
-    public void initVesselsCircleCulture(sproutGrid model, double startVascularChance) {
+    public void initVesselsCircleCulture(sproutGrid model) {
 
         int center = I((Xdim()/2), (Ydim()/2));
         for (int i = 0; i < (model.Xdim()*model.Ydim()); i++) {
-            if (distance(ItoX(i), ItoY(i), ItoX(center), ItoY(center)) < (CULTURE_RADIUS)) {
-                if (Math.random() < startVascularChance) { // may be head cells or body cells
-                    model.NewAgentSQ(i).InitVessel(sproutAgent.HEAD_CELL, 0);
+            double dist = distance(ItoX(i), ItoY(i), ItoX(center), ItoY(center));
+            if (dist < (CULTURE_RADIUS)) {
+                if (dist > (CULTURE_RADIUS - 2)){
+                    if (Math.random() < INITIAL_PERCENT_HEAD_CELLS) { // may be head cells or body cells
+                        model.NewAgentSQ(i).InitVessel(sproutAgent.HEAD_CELL, 0);
+                    }
                 } else {
                     model.NewAgentSQ(i).InitVessel(sproutAgent.BODY_CELL, 0);
                 }
@@ -282,6 +284,9 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
         double foldChange = numVessels/(double)initialCultureSize;
         CSV.append(foldChange).append(",");
 
+        // Head cell data
+        double[] headCellCalculations = AverageFinalHeadCellDistance();
+
         //diffusion coefficient
         CSV.append(DIFFUSION_COEFFICIENT).append(",");
 
@@ -298,7 +303,13 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
         CSV.append(VESSEL_VEGF_INTAKE).append(",");
 
         //hours
-        CSV.append(RUNTIME_HOURS);
+        CSV.append(RUNTIME_HOURS).append(",");
+
+        // Average head cell distances
+        CSV.append(headCellCalculations[0]).append(",");
+
+        // Head cell max distance
+        CSV.append(headCellCalculations[1]);
 
         // TIME DATA
 
@@ -318,6 +329,34 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
 
         }
 
+    }
+
+    public double[] AverageFinalHeadCellDistance(){
+        // Head cell distances
+//        ArrayList<Integer> head_cells = new ArrayList<>();
+        int center_x = (Xdim()/2);
+        int center_y = (Ydim()/2);
+        double sumDistance = 0;
+        double maxDistance = -1;
+        int count = 0;
+        for (int x_coord = 0; x_coord < x; x_coord++) {
+            for (int y_coord = 0; y_coord < y; y_coord++) {
+                Iterable<sproutAgent> agents = IterAgents(x_coord, y_coord);
+                for (sproutAgent agent : agents) {
+                    if (agent.type == HEAD_CELL){
+//                        head_cells.add(I(x_coord, y_coord));
+                        double dist = (distance(x_coord, y_coord, center_x, center_y))-CULTURE_RADIUS;
+                        sumDistance += dist;
+                        count ++;
+                        if (dist>maxDistance){
+                            maxDistance = dist;
+                        }
+                    }
+                }
+            }
+        }
+
+        return (new double[]{((sumDistance)/count)*MICRONS_PER_PIXEL, maxDistance*MICRONS_PER_PIXEL});
     }
 
 
@@ -358,7 +397,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
 
     
     public void Initialize_CSV(){
-        CSV.append("Heparin Percentage (%), Total Vessel Length (microns), Fold Change (%), Diffusion Coefficient, VEGF Sensitivity, Vessel Growth Delay, Initial percent head cells, VEGF intake, hours");
+        CSV.append("Heparin Percentage (%), Total Vessel Length (microns), Fold Change (%), Diffusion Coefficient, VEGF Sensitivity, Vessel Growth Delay, Initial percent head cells, VEGF intake, hours, Average Head Cell Distance from Culture (microns), Max Head Cell Distance from Culture (microns)");
     }
 
 
@@ -399,7 +438,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
 
         if (!BATCH_RUN){
             // Initialize
-            model.initVesselsCircleCulture(model, INITIAL_PERCENT_HEAD_CELLS);
+            model.initVesselsCircleCulture(model);
             model.initMAPParticles(model, HEPARIN_PERCENTAGES[0]);
 
             model.Initialize_CSV();
@@ -430,7 +469,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
                     model.ResetTick(); // reset the time tick
                     model.ClearFoldChange();
                     model.VEGF = new PDEGrid2D(x, y); // initialize the diffusion grid
-                    model.initVesselsCircleCulture(model, INITIAL_PERCENT_HEAD_CELLS); // initialize vessels
+                    model.initVesselsCircleCulture(model); // initialize vessels
                     model.initMAPParticles(model, heparinPercentage); // initialize MAP particles
 
                     model.initialCultureSize= model.countVessels(); // used for the initial vessel count in fold change

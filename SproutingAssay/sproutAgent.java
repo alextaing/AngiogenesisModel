@@ -32,7 +32,7 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
     public final static double PERSISTENCY_TIME = sproutGrid.PERSISTENCY_TIME; //IS THIS NECESSARY HERE??
     public static final double HEP_MAP_VEGF_RELEASE = sproutGrid.HEP_MAP_VEGF_RELEASE;
     public static final double MEDIA_EXCHANGE_SCHEDULE_TICKS = sproutGrid.MEDIA_EXCHANGE_SCHEDULE_TICKS;
-
+    public static final double VEGF_DEGRADATION_RATE = sproutGrid.VEGF_DEGRADATION_RATE;
     public final static double LOW_BRANCHING_PROBABILITY= sproutGrid.LOW_BRANCHING_PROBABILITY;
     public final static double LOW_MED_VEGF_THRESHOLD = sproutGrid.LOW_MED_VEGF_THRESHOLD;
     public final static double MED_BRANCHING_PROBABILITY= sproutGrid.MED_BRANCHING_PROBABILITY;
@@ -300,6 +300,17 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
         }
     }
 
+    public void VEGFDegrade() {
+        assert G != null;
+        if (G.VEGF.Get(Isq()) >= 0 && G.GetTick()%60 == 0)  { // VEGF degrades
+            //G.VEGF.Add(Isq(), -(G.VEGF.Get(Isq()))* VEGF_DEGRADATION_RATE);
+            G.VEGF.Add(Isq(), - VEGF_DEGRADATION_RATE);
+            if (G.VEGF.Get(Isq()) < 0){
+                G.VEGF.Set(Isq(), 0);
+            }
+        }
+    }
+
     /**
      * Steps an agent, can be used on all implemented agents
      */
@@ -319,5 +330,8 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
 
         // Elongate
         VesselGrowthByRate();
+
+        //Degrade
+        VEGFDegrade();
     }
 }

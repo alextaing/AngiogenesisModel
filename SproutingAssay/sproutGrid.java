@@ -45,13 +45,13 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public final static int MIGRATION_RATE_MICRONS_PER_HOUR = 30; // microns/hr
 
     // VESSEL PARAMETERS NEEDING PARAMETERIZED AND SENSITIVITY ANALYSIS
-    public final static double VEGF_SENSITIVITY = 0.001; // minimum VEGF to attract cell growth
+    public final static double VEGF_SENSITIVITY = 0.005; // minimum VEGF to attract cell growth
     public static double VESSEL_VEGF_INTAKE = 0.1; // percent of how much of the present VEGF is consumed when a blood vessel is nearby
     public final static double INITIAL_PERCENT_HEAD_CELLS = 0.1; // probability of initializing an off branch from wound site
-
+    public final static double VEGF_DEGRADATION_RATE = 0;//
     // BRANCHING PROBABILITY AND THRESHOLDS_ PROBABILITIES NEED PARAMETERIZED BUT COULD STAY FIXED
     public final static double LOW_BRANCHING_PROBABILITY= 0.4; // probability of branching while VEGF is under LOW_MED_VEGF_THRESHOLD
-    public final static double LOW_MED_VEGF_THRESHOLD = 0.33;
+    public final static double LOW_MED_VEGF_THRESHOLD = 0.05;
     public final static double MED_BRANCHING_PROBABILITY= 0.6; // probability of branching while VEGF is between LOW_MED_VEGF_THRESHOLD and MED_HIGH_VEGF_THRESHOLD
     public final static double MED_HIGH_VEGF_THRESHOLD = 0.66;
     public final static double HIGH_BRANCHING_PROBABILITY= 0.9; // probability of branching while VEGF is above MED_HIGH_VEGF_THRESHOLD
@@ -307,6 +307,21 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
         //hours
         CSV.append(RUNTIME_HOURS).append(",");
 
+        //vegf degradation
+        CSV.append(VEGF_DEGRADATION_RATE).append(",");
+
+        //Low-med threshold
+        CSV.append(LOW_MED_VEGF_THRESHOLD).append(",");
+
+        //med-high threshold
+        CSV.append(MED_HIGH_VEGF_THRESHOLD).append(",");
+
+        //VEGF in each hep particle
+        CSV.append(HEP_MAP_VEGF_RELEASE).append(",");
+
+        //How frequently hep-map vegf VEGF is released
+        CSV.append(MEDIA_EXCHANGE_SCHEDULE_HOURS);
+
         // TIME DATA
 
         if (EXPORT_TIME_DATA){
@@ -379,12 +394,12 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
         }
 
         String timestamp_string = ((timestamp.toString().replace(" ","_").replace(".", "-").replace(":", "-")).substring(0, 10) +" " + (percentages) + "%");
-        Path fileName= Path.of("SproutingAssay\\SproutingAssayData\\" + timestamp_string + "sensitivity.csv");
+        Path fileName= Path.of("SproutingAssay\\SproutingAssayData\\" + timestamp_string + "sensitivitydegradation.csv");
         Path timeDataFileName =  Path.of("SproutingAssay\\SproutingAssayData\\" + timestamp_string + "sensitivity_timeData.csv");
         Path headCellDistanceFileName = Path.of("SproutingAssay\\SproutingAssayData\\" + timestamp_string + "sensitivity_headCellDistance.csv");
         int i = 1;
         while (Files.exists(fileName)){
-            fileName= Path.of("SproutingAssay\\SproutingAssayData\\" + timestamp_string + " (" + i + ")" + "sensitivity.csv");
+            fileName= Path.of("SproutingAssay\\SproutingAssayData\\" + timestamp_string + " (" + i + ")" + "sensitivitydegradation.csv");
             timeDataFileName =  Path.of("SproutingAssay\\SproutingAssayData\\" + timestamp_string + " (" + i + ")" + "sensitivity_timeData.csv");
             headCellDistanceFileName = Path.of("SproutingAssay\\SproutingAssayData\\" + timestamp_string + " (" + i + ")" + "sensitivity_headCellDistance.csv");
             i++;
@@ -406,7 +421,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
 
     
     public void Initialize_CSV(){
-        CSV.append("Heparin Percentage (%), Total Vessel Length (microns), Fold Change (%), Diffusion Coefficient, VEGF Sensitivity, Vessel Growth Delay, Initial percent head cells, VEGF intake, hours");
+        CSV.append("Heparin Percentage (%), Total Vessel Length (microns), Fold Change (%), Diffusion Coefficient, VEGF Sensitivity, Vessel Growth Delay, Initial percent head cells, VEGF intake, hours, vegfdegradation, low-med thres, med-high thres, vegf loaded, media exchange");
     }
 
 

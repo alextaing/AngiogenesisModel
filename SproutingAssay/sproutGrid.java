@@ -344,7 +344,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
 
         if (EXPORT_HEAD_CELL_DISTANCE_DATA){
             if (HEAD_CSV.length() == 0){
-                HEAD_CSV.append("Distance (microns) ").append("\n");
+                HEAD_CSV.append("Final Head Cell Distances (microns) ").append("\n");
             }
             HEAD_CSV.append("[").append((int) (heparinPercentage * 100)).append("%],");
             for (Double distance : headCellDistances) {

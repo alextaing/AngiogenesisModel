@@ -31,6 +31,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public final static boolean BATCH_RUN = true;
     public final static boolean EXPORT_DATA = true;
     public final static boolean EXPORT_TIME_DATA = true; // (note that EXPORT_DATA must also be true as well to export time data)
+    public final static boolean EXPORT_HEAD_CELL_DISTANCE_DATA = true; // (note that EXPORT_DATA must also be true as well to export distance data)
     public final static int TRIALS = 2;
     public final static double[] HEPARIN_PERCENTAGES = new double[]{0.1,0.15, 0.2};
     public final static double FOLD_CHANGE_SAMPLE_TIME = 0.25 ; // every ___ hours
@@ -123,6 +124,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
 
     public static StringBuilder CSV = new StringBuilder();
     public static StringBuilder TIME_CSV = new StringBuilder();
+    public static StringBuilder HEAD_CSV = new StringBuilder();
     public int initialCultureSize;
     public ArrayList<Double> foldChangeOverTime = new ArrayList<>();
     public ArrayList<Double> FCTime = new ArrayList<>();
@@ -285,7 +287,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
         CSV.append(foldChange).append(",");
 
         // Head cell data
-        double[] headCellCalculations = AverageFinalHeadCellDistance();
+        ArrayList<Double> headCellDistances = FinalHeadCellDistance();
 
         //diffusion coefficient
         CSV.append(DIFFUSION_COEFFICIENT).append(",");
@@ -305,12 +307,6 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
         //hours
         CSV.append(RUNTIME_HOURS).append(",");
 
-        // Average head cell distances
-        CSV.append(headCellCalculations[0]).append(",");
-
-        // Head cell max distance
-        CSV.append(headCellCalculations[1]);
-
         // TIME DATA
 
         if (EXPORT_TIME_DATA){
@@ -329,34 +325,40 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
 
         }
 
+        // HEAD CELL DISTANCE DATA
+
+        if (EXPORT_HEAD_CELL_DISTANCE_DATA){
+            if (HEAD_CSV.length() == 0){
+                HEAD_CSV.append("Distance (microns) ").append("\n");
+            }
+            HEAD_CSV.append("[").append((int) (heparinPercentage * 100)).append("%],");
+            for (Double distance : headCellDistances) {
+                HEAD_CSV.append(distance).append(",");
+            }
+            HEAD_CSV.append("\n");
+
+        }
+
     }
 
-    public double[] AverageFinalHeadCellDistance(){
+    public ArrayList<Double> FinalHeadCellDistance(){
         // Head cell distances
-//        ArrayList<Integer> head_cells = new ArrayList<>();
+        ArrayList<Double> head_cell_distances = new ArrayList<>();
         int center_x = (Xdim()/2);
         int center_y = (Ydim()/2);
-        double sumDistance = 0;
-        double maxDistance = -1;
-        int count = 0;
         for (int x_coord = 0; x_coord < x; x_coord++) {
             for (int y_coord = 0; y_coord < y; y_coord++) {
                 Iterable<sproutAgent> agents = IterAgents(x_coord, y_coord);
                 for (sproutAgent agent : agents) {
                     if (agent.type == HEAD_CELL){
-//                        head_cells.add(I(x_coord, y_coord));
-                        double dist = (distance(x_coord, y_coord, center_x, center_y))-CULTURE_RADIUS;
-                        sumDistance += dist;
-                        count ++;
-                        if (dist>maxDistance){
-                            maxDistance = dist;
-                        }
+                        double dist = (distance(x_coord, y_coord, center_x, center_y))*MICRONS_PER_PIXEL;
+                        head_cell_distances.add(dist);
                     }
                 }
             }
         }
 
-        return (new double[]{((sumDistance)/count)*MICRONS_PER_PIXEL, maxDistance*MICRONS_PER_PIXEL});
+        return head_cell_distances;
     }
 
 
@@ -379,10 +381,12 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
         String timestamp_string = ((timestamp.toString().replace(" ","_").replace(".", "-").replace(":", "-")).substring(0, 10) +" " + (percentages) + "%");
         Path fileName= Path.of("SproutingAssay\\SproutingAssayData\\" + timestamp_string + "sensitivity.csv");
         Path timeDataFileName =  Path.of("SproutingAssay\\SproutingAssayData\\" + timestamp_string + "sensitivity_timeData.csv");
+        Path headCellDistanceFileName = Path.of("SproutingAssay\\SproutingAssayData\\" + timestamp_string + "sensitivity_headCellDistance.csv");
         int i = 1;
         while (Files.exists(fileName)){
             fileName= Path.of("SproutingAssay\\SproutingAssayData\\" + timestamp_string + " (" + i + ")" + "sensitivity.csv");
             timeDataFileName =  Path.of("SproutingAssay\\SproutingAssayData\\" + timestamp_string + " (" + i + ")" + "sensitivity_timeData.csv");
+            headCellDistanceFileName = Path.of("SproutingAssay\\SproutingAssayData\\" + timestamp_string + " (" + i + ")" + "sensitivity_headCellDistance.csv");
             i++;
         }
         StringBuilder dataset = CSV;
@@ -393,11 +397,16 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
             Files.writeString(timeDataFileName, timeDataset);
         }
 
+        if (EXPORT_HEAD_CELL_DISTANCE_DATA){
+            StringBuilder timeDataset = HEAD_CSV;
+            Files.writeString(headCellDistanceFileName, timeDataset);
+        }
+
     }
 
     
     public void Initialize_CSV(){
-        CSV.append("Heparin Percentage (%), Total Vessel Length (microns), Fold Change (%), Diffusion Coefficient, VEGF Sensitivity, Vessel Growth Delay, Initial percent head cells, VEGF intake, hours, Average Head Cell Distance from Culture (microns), Max Head Cell Distance from Culture (microns)");
+        CSV.append("Heparin Percentage (%), Total Vessel Length (microns), Fold Change (%), Diffusion Coefficient, VEGF Sensitivity, Vessel Growth Delay, Initial percent head cells, VEGF intake, hours");
     }
 
 

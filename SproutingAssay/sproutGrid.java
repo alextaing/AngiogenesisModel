@@ -45,22 +45,22 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public final static int MIGRATION_RATE_MICRONS_PER_HOUR = 30; // microns/hr
 
     // VESSEL PARAMETERS NEEDING PARAMETERIZED AND SENSITIVITY ANALYSIS
-    public final static double VEGF_SENSITIVITY = 0.005; // minimum VEGF to attract cell growth
+    public final static double VEGF_SENSITIVITY = 0.03; // minimum VEGF to attract cell growth
     public static double VESSEL_VEGF_INTAKE = 0.1; // percent of how much of the present VEGF is consumed when a blood vessel is nearby
-    public final static double INITIAL_PERCENT_HEAD_CELLS = 0.1; // probability of initializing an off branch from wound site
-    public final static double VEGF_DEGRADATION_RATE = 0;//
+    public final static double INITIAL_PERCENT_HEAD_CELLS = 0.07; // probability of initializing an off branch from wound site
+    public final static double VEGF_DEGRADATION_RATE = 0.5;//
     // BRANCHING PROBABILITY AND THRESHOLDS_ PROBABILITIES NEED PARAMETERIZED BUT COULD STAY FIXED
     public final static double LOW_BRANCHING_PROBABILITY= 0.4; // probability of branching while VEGF is under LOW_MED_VEGF_THRESHOLD
     public final static double LOW_MED_VEGF_THRESHOLD = 0.05;
-    public final static double MED_BRANCHING_PROBABILITY= 0.6; // probability of branching while VEGF is between LOW_MED_VEGF_THRESHOLD and MED_HIGH_VEGF_THRESHOLD
-    public final static double MED_HIGH_VEGF_THRESHOLD = 0.66;
+    public final static double MED_BRANCHING_PROBABILITY= 0.55; // probability of branching while VEGF is between LOW_MED_VEGF_THRESHOLD and MED_HIGH_VEGF_THRESHOLD
+    public final static double MED_HIGH_VEGF_THRESHOLD = 0.25;
     public final static double HIGH_BRANCHING_PROBABILITY= 0.9; // probability of branching while VEGF is above MED_HIGH_VEGF_THRESHOLD
 
     // MAP GEL PARAMETERS - FIXED
     public final static int MAP_RADIUS_MICRONS = 40; // microns
     public final static int MAP_SPACING_MICRONS = 15; // microns
     public final static double HEP_MAP_VEGF_RELEASE = 1; // how much VEGF to add per media exchange
-    public final static double MEDIA_EXCHANGE_SCHEDULE_HOURS = 24; // exchange media to refresh VEGF every __ hours
+    public final static double MEDIA_EXCHANGE_SCHEDULE_HOURS = 1; // exchange media to refresh VEGF every __ hours
     //public final static double HEPARIN_PERCENTAGES = 0.1; // percentage of heparin particles
 
     // MAIN METHOD PARAMETERS - FIXED
@@ -72,7 +72,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public final static double VESSEL_GROWTH_DELAY_HOURS = 2;
 
     // DIFFUSION - NEEDS PARAMETERIZED
-    public final static double DIFFUSION_COEFFICIENT = 0.07; // diffusion coefficient
+    public final static double DIFFUSION_COEFFICIENT = 0.733; // diffusion coefficient
 
 
 
@@ -156,7 +156,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
             endoCell.StepCell();
         }
         IncTick();
-        VEGF.Diffusion(DIFFUSION_COEFFICIENT);
+        VEGF.DiffusionADI(DIFFUSION_COEFFICIENT);
         VEGF.Update();
     }
 

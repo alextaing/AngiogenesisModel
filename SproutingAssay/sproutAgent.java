@@ -302,9 +302,9 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
 
     public void VEGFDegrade() {
         assert G != null;
-        if (G.VEGF.Get(Isq()) >= 0 && G.GetTick()%60 == 0)  { // VEGF degrades
-            //G.VEGF.Add(Isq(), -(G.VEGF.Get(Isq()))* VEGF_DEGRADATION_RATE);
-            G.VEGF.Add(Isq(), - VEGF_DEGRADATION_RATE);
+        if (G.VEGF.Get(Isq()) >= 0 && G.GetTick()%90 == 0)  { // VEGF degrades
+            G.VEGF.Add(Isq(), -(G.VEGF.Get(Isq()))* VEGF_DEGRADATION_RATE);
+            //G.VEGF.Add(Isq(), - VEGF_DEGRADATION_RATE);
             if (G.VEGF.Get(Isq()) < 0){
                 G.VEGF.Set(Isq(), 0);
             }

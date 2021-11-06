@@ -40,9 +40,10 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     // VESSEL PARAMETERS FIXED!
     public static final int CULTURE_RADIUS_MICRONS = 140; // radius of the initial spheroid in microns
     public final static int SIGHT_RADIUS_MICRONS = 20; // how far a EC can sense in microns
-    public final static int PERSISTENCY_TIME_PER_HOUR = 3; // time between a EC changes direction in hours
+    public final static double PERSISTENCY_TIME_HOURS = 3; // time between a EC changes direction in hours
     public static final int MAX_ELONGATION_LENGTH_MICRONS = 40; // microns
     public final static int MIGRATION_RATE_MICRONS_PER_HOUR = 30; // microns/hr
+    public final static double BRANCH_DELAY_TIME_HOURS = 6; // minimum time between branching (hours)
 
     // VESSEL PARAMETERS NEEDING PARAMETERIZED AND SENSITIVITY ANALYSIS
     public final static double VEGF_SENSITIVITY = 0.03; // 0.03 baseline minimum VEGF to attract cell growth
@@ -87,11 +88,12 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public final static int SIGHT_RADIUS = SIGHT_RADIUS_MICRONS/ MICRONS_PER_PIXEL; // radius to detect VEGF
     public static final int MAX_ELONGATION_LENGTH = MAX_ELONGATION_LENGTH_MICRONS/ MICRONS_PER_PIXEL;
     public final static double MIGRATION_RATE = 1/((MIGRATION_RATE_MICRONS_PER_HOUR/(double) MICRONS_PER_PIXEL)*(1/(double)TICKS_PER_HOUR)); // convert to "elongate every ___ ticks"
-    public final static double PERSISTENCY_TIME = PERSISTENCY_TIME_PER_HOUR * TICKS_PER_HOUR;
+    public final static double PERSISTENCY_TIME = PERSISTENCY_TIME_HOURS * TICKS_PER_HOUR;
+    public final static int BRANCH_DELAY_TIME = (int)(BRANCH_DELAY_TIME_HOURS * TICKS_PER_HOUR);
 
     // particles
     public final static int MAP_RADIUS = MAP_RADIUS_MICRONS/ MICRONS_PER_PIXEL; // radius of MAP particle
-    public final static double MAP_SPACING = MAP_RADIUS_MICRONS/ MICRONS_PER_PIXEL + MAP_SPACING_MICRONS/ MICRONS_PER_PIXEL; // spacing radius between MAP gel centers
+    public final static double MAP_SPACING = (double)(MAP_RADIUS_MICRONS)/ MICRONS_PER_PIXEL + MAP_SPACING_MICRONS/ MICRONS_PER_PIXEL; // spacing radius between MAP gel centers
     public final static double MEDIA_EXCHANGE_SCHEDULE_TICKS = MEDIA_EXCHANGE_SCHEDULE_HOURS*TICKS_PER_HOUR;
 
     // grid
@@ -215,6 +217,12 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
                 if (dist > (CULTURE_RADIUS - 2)){
                     if (Math.random() < INITIAL_PERCENT_HEAD_CELLS) { // may be head cells or body cells
                         model.NewAgentSQ(i).InitVessel(sproutAgent.HEAD_CELL, 0);
+                    }
+                } else if (dist > (CULTURE_RADIUS-3)){
+                    if (Math.random() < INITIAL_PERCENT_HEAD_CELLS) { // may be head cells or body cells
+                        model.NewAgentSQ(i).InitVessel(sproutAgent.HEAD_CELL, 0);
+                    } else {
+                        model.NewAgentSQ(i).InitVessel(sproutAgent.BODY_CELL, 0);
                     }
                 } else {
                     model.NewAgentSQ(i).InitVessel(sproutAgent.BODY_CELL, 0);

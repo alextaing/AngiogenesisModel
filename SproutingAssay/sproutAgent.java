@@ -94,7 +94,7 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
         ArrayList<Integer> mincoordint = new ArrayList<>(); // closest points that are in the cell neighborhood (as an int)
 
         assert G != null;
-        int options = G.MapHood(G.divHood, Isq()); // open areas around cell
+        int options = G.MapEmptyHood(G.divHood, Isq()); // open areas around cell
 
         for (int i = 0; i < options; i++) { // iterate thorough the open areas
             int MAPcount = 0; // tally of MAP present
@@ -246,7 +246,7 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
                 int highestConcentrationCoord = HighestConcentrationVEGF(); // find new target location: the location in the sight radius with the highest VEGF
                 highestConcentrationCoord = CalculateTargetScaleTargetCoord(highestConcentrationCoord); // find a point in the same direction, but very far away, so you won't reach it: want to persist in that direction
                 cellDivLocation = HoodClosestToTarget(highestConcentrationCoord); // and find the closest adjacent coordinate in the direction towards the highestConcentrationCoord
-                if ((highestConcentrationCoord > 0) && (cellDivLocation > 0)){ // If there is a location of highest concentration and there is an open adjacent spot... (the values will be 0 if none were found)
+                if ((highestConcentrationCoord > 0) && (cellDivLocation > 0) && (G.PopAt(cellDivLocation) == 0)){ // If there is a location of highest concentration and there is an open adjacent spot... (the values will be 0 if none were found)
                     G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, highestConcentrationCoord, since_last_growth, 0, 1); // make a new head cell at cellDivLocation
                     InitVessel(BODY_CELL, this.length); // and make the old cell a body cell
                 }
@@ -256,15 +256,20 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
                     // the options for branching locations around the cell
                     int options = MapEmptyHood(G.divHood);
                     if (options >= 1) { // if there is an open nearby location, then branch there
-                        G.NewAgentSQ(G.divHood[G.rng.Int(options)]).InitVesselMigrationRate(HEAD_CELL, this.length + 1, 0, 0, this.ticks_since_direction_change =0, 1); // make a new head cell at the branching location
-                        InitVessel(BODY_CELL, this.length); // make the old cell a body cell
+                        cellDivLocation = G.divHood[G.rng.Int(options)];
+                        if (G.PopAt(cellDivLocation) == 0){
+                            G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, 0, 0, this.ticks_since_direction_change =0, 1); // make a new head cell at the branching location
+                            InitVessel(BODY_CELL, this.length); // make the old cell a body cell
+                        }
                     }
                 }
             } else if (elongation_length < MAX_ELONGATION_LENGTH){ //added else if
                 // if not at max length and not at it's target location, then it has a target that it needs to get to.
                 cellDivLocation = HoodClosestToTarget(target); // find an open adjacent location closest to the target
-                G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, target, since_last_growth, ticks_since_direction_change, elongation_length + 1); // make a new cell there LP Question: how do I make ticks_since_direction change= 0
-                InitVessel(BODY_CELL, this.length); // make the old cell a body cell
+                if (G.PopAt(cellDivLocation) == 0) {
+                    G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, target, since_last_growth, ticks_since_direction_change, elongation_length + 1); // make a new cell there LP Question: how do I make ticks_since_direction change= 0
+                    InitVessel(BODY_CELL, this.length); // make the old cell a body cell
+                }
             }
         }
     }
@@ -315,7 +320,7 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
      * Steps an agent, can be used on all implemented agents
      */
     public void StepCell() {
-
+        
         // Eat VEGF
         ConsumeVEGF();
 

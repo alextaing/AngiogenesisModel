@@ -39,6 +39,7 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
     public final static double MED_BRANCHING_PROBABILITY= sproutGrid.MED_BRANCHING_PROBABILITY;
     public final static double MED_HIGH_VEGF_THRESHOLD = sproutGrid.MED_HIGH_VEGF_THRESHOLD;
     public final static double HIGH_BRANCHING_PROBABILITY= sproutGrid.HIGH_BRANCHING_PROBABILITY;
+    public final static double REQUIRED_VEGF_GRADIENT_DIFFERENCE = sproutGrid.REQUIRED_VEGF_GRADIENT_DIFFERENCE;
 
     int color;
     int type;
@@ -254,6 +255,9 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
                 highestConcentrationCoord = CalculateTargetScaleTargetCoord(highestConcentrationCoord); // find a point in the same direction, but very far away, so you won't reach it: want to persist in that direction
                 cellDivLocation = HoodClosestToTarget(highestConcentrationCoord); // and find the closest adjacent coordinate in the direction towards the highestConcentrationCoord
                 if ((highestConcentrationCoord > 0) && (cellDivLocation > 0) && (G.PopAt(cellDivLocation) == 0)){ // If there is a location of highest concentration and there is an open adjacent spot... (the values will be 0 if none were found)
+                    if (!(G.VEGF.Get(Isq()) + REQUIRED_VEGF_GRADIENT_DIFFERENCE <= G.VEGF.Get(cellDivLocation))){
+                        return;
+                    }
                     G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, highestConcentrationCoord, since_last_growth, 0, 1, since_last_branch); // make a new head cell at cellDivLocation
                     InitVessel(BODY_CELL, this.length); // and make the old cell a body cell
                 }
@@ -265,6 +269,9 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
                     if (options >= 1) { // if there is an open nearby location, then branch there
                         cellDivLocation = G.divHood[G.rng.Int(options)];
                         if (G.PopAt(cellDivLocation) == 0){
+                            if (!(G.VEGF.Get(Isq()) + REQUIRED_VEGF_GRADIENT_DIFFERENCE <= G.VEGF.Get(cellDivLocation))){
+                                return;
+                            }
                             G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, 0, 0, this.ticks_since_direction_change =0, 1, 0); // make a new head cell at the branching location
                             InitVessel(BODY_CELL, this.length); // make the old cell a body cell
                         }
@@ -274,6 +281,9 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
                 // if not at max length and not at it's target location, then it has a target that it needs to get to.
                 cellDivLocation = HoodClosestToTarget(target); // find an open adjacent location closest to the target
                 if (G.PopAt(cellDivLocation) == 0) {
+                    if (!(G.VEGF.Get(Isq()) + REQUIRED_VEGF_GRADIENT_DIFFERENCE <= G.VEGF.Get(cellDivLocation))){
+                        return;
+                    }
                     G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, target, since_last_growth, ticks_since_direction_change, elongation_length + 1, since_last_branch); // make a new cell there LP Question: how do I make ticks_since_direction change= 0
                     InitVessel(BODY_CELL, this.length); // make the old cell a body cell
                 }

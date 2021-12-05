@@ -190,7 +190,7 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
     public void ConsumeVEGF() {
         assert G != null;
         if ((G.VEGF.Get(Isq()) >= 0) && ((type == HEAD_CELL) || (type == BODY_CELL))) { // Head cells and body cells consume VEGF
-            G.VEGF.Add(Isq(), -(G.VEGF.Get(Isq()))* VESSEL_VEGF_INTAKE);
+            G.VEGF.Add(Isq(), -VESSEL_VEGF_INTAKE);
             if (G.VEGF.Get(Isq()) < 0){
                 G.VEGF.Set(Isq(), 0);
             }

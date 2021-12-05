@@ -47,10 +47,10 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
 
     // VESSEL PARAMETERS NEEDING PARAMETERIZED AND SENSITIVITY ANALYSIS
     public final static double VEGF_SENSITIVITY = 0.03; // 0.03 baseline minimum VEGF to attract cell growth
-    public static double VESSEL_VEGF_INTAKE = 0.1; // percent of how much of the present VEGF is consumed when a blood vessel is nearby
+    public static double VESSEL_VEGF_INTAKE = 0.001; // percent of how much of the present VEGF is consumed when a blood vessel is nearby
     public final static double INITIAL_PERCENT_HEAD_CELLS = 0.07; // probability of initializing an off branch from wound site
     public final static double VEGF_DEGRADATION_RATE = 0.5;//
-    public final static double REQUIRED_VEGF_GRADIENT_DIFFERENCE = 0; // Difference required between a location and the next division location in order to elongate
+    public final static double REQUIRED_VEGF_GRADIENT_DIFFERENCE = 0.005; // Difference required between a location and the next division location in order to elongate
     // BRANCHING PROBABILITY AND THRESHOLDS_ PROBABILITIES NEED PARAMETERIZED BUT COULD STAY FIXED
     public final static double LOW_BRANCHING_PROBABILITY= 0.4; // probability of branching while VEGF is under LOW_MED_VEGF_THRESHOLD
     public final static double LOW_MED_VEGF_THRESHOLD = 0.05;
@@ -66,8 +66,8 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     //public final static double HEPARIN_PERCENTAGES = 0.1; // percentage of heparin particles
 
     // MAIN METHOD PARAMETERS - FIXED
-    public final static int x_MICRONS = 2000; // microns
-    public final static int y_MICRONS = 2000; // microns
+    public final static int x_MICRONS = 4000; // microns
+    public final static int y_MICRONS = 4000; // microns
     public final static int SCALE_FACTOR = 2;
     public final static int TICK_PAUSE = 1;
     public final static int RUNTIME_HOURS = 24; // how long will the simulation run?

@@ -32,8 +32,8 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public final static boolean EXPORT_DATA = true;
     public final static boolean EXPORT_TIME_DATA = true; // (note that EXPORT_DATA must also be true as well to export time data)
     public final static boolean EXPORT_HEAD_CELL_DISTANCE_DATA = true; // (note that EXPORT_DATA must also be true as well to export distance data)
-    public final static int TRIALS = 100;
-    public final static double[] HEPARIN_PERCENTAGES = new double[]{0.1};
+    public final static int TRIALS = 1;
+    public final static double[] HEPARIN_PERCENTAGES = {0.29};
     public final static double FOLD_CHANGE_SAMPLE_TIME = 0.25 ; // every ___ hours
     //public final static double[] DIFFUSION_COEFFICIENT = new double[]{0.01, 0.04, 0.07, 0.10, 0.13};
 
@@ -285,7 +285,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
         CSV.append("\n");
         
         // Note percentage
-        CSV.append((int)(heparinPercentage*100)).append("%,");
+        CSV.append((int)Math.round(heparinPercentage*100)).append("%,");
         
         // Total vessel length
         int numVessels = countVessels();
@@ -400,11 +400,11 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
         ArrayList<Integer> percentages = new ArrayList<>();
         if (BATCH_RUN) {
             for (double percentage : HEPARIN_PERCENTAGES) {
-                percentage = percentage*100;
+                percentage = Math.round(percentage*100);
                 percentages.add((int)percentage);
             }
         } else {
-            percentages.add((int)(HEPARIN_PERCENTAGES[0]*100));
+            percentages.add((int)Math.round(HEPARIN_PERCENTAGES[0]*100));
         }
 
         String timestamp_string = ((timestamp.toString().replace(" ","_").replace(".", "-").replace(":", "-")).substring(0, 10) +" " + (percentages) + "%");

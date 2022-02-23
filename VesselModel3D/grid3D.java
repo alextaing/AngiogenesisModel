@@ -25,7 +25,7 @@ public class grid3D extends AgentGrid3D<agent3D> {
     public static final boolean VIEW_VESSELS = true;
 
     // MAP GEL
-    public static final double HEPARIN_ISLAND_PERCENTAGE = 0.15; // enter as a decimal between 0 and 1, heparin microislands
+    public static final double HEPARIN_ISLAND_PERCENTAGE = 0.01; // enter as a decimal between 0 and 1, heparin microislands
     public static final double MAP_DIAMETER = 80 * (SCALE_FACTOR); //(microns)
     public static final double VESSEL_DIAMETER = 16 * (SCALE_FACTOR); //(microns)
     public static final double MAP_GAP =  18 * (SCALE_FACTOR); //(microns)
@@ -121,6 +121,7 @@ public class grid3D extends AgentGrid3D<agent3D> {
     public grid3D (int x, int y, int z) {
         super(x, y, z, agent3D.class);
         VEGF = new PDEGrid3D(x, y, z);
+
     }
 
     ////////////////////
@@ -178,8 +179,8 @@ public class grid3D extends AgentGrid3D<agent3D> {
      * Calls the VEGF grid to take action
      */
     public void StepVEGF(){
-        VEGF.Diffusion(0.1);
-    }
+        VEGF.DiffusionADI(0.1);
+    } // TODO: add as parameter (0.733 in 2D)(changed to ADI)
 
     //////////////////
     // GRID DRAWING //

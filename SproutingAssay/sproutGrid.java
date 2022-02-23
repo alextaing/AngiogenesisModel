@@ -32,8 +32,8 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public final static boolean EXPORT_DATA = true;
     public final static boolean EXPORT_TIME_DATA = true; // (note that EXPORT_DATA must also be true as well to export time data)
     public final static boolean EXPORT_HEAD_CELL_DISTANCE_DATA = true; // (note that EXPORT_DATA must also be true as well to export distance data)
-    public final static int TRIALS = 1;
-    public final static double[] HEPARIN_PERCENTAGES = {0.29};
+    public final static int TRIALS = 500;
+    public final static double[] HEPARIN_PERCENTAGES = {0.28};
     public final static double FOLD_CHANGE_SAMPLE_TIME = 0.25 ; // every ___ hours
     //public final static double[] DIFFUSION_COEFFICIENT = new double[]{0.01, 0.04, 0.07, 0.10, 0.13};
 
@@ -62,7 +62,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public final static int MAP_RADIUS_MICRONS = 40; // microns
     public final static double MAP_SPACING_MICRONS = 15; // microns
     public final static double HEP_MAP_VEGF_RELEASE = 1; // how much VEGF to add per media exchange
-    public final static double MEDIA_EXCHANGE_SCHEDULE_HOURS = 1; // exchange media to refresh VEGF every __ hours
+    public final static double MEDIA_EXCHANGE_SCHEDULE_HOURS = 0.3571; // exchange media to refresh VEGF every __ hours
     //public final static double HEPARIN_PERCENTAGES = 0.1; // percentage of heparin particles
 
     // MAIN METHOD PARAMETERS - FIXED

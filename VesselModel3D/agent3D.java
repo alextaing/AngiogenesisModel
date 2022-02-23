@@ -223,10 +223,20 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
 
         // HEAD CELLS
         if(type == HEAD_CELL) { // if type head cell
+
+            // TODO: Add max persistency time and elongation length
+                // keep going in direction
+
+            // TODO: Add migration rate
+            // TODO: Add VEGF sensitivity
             chemotaxis(); // move up the gradient
+
+            // branch delay is present
             timeSinceLastBranch += 1; // and add one to the time since last branch
             // BRANCH SOMETIMES
             if (timeSinceLastBranch > BRANCH_DELAY) { // if it has been long enough since last branch
+
+                // TODO: add dependency of branching on VEGF concentration
                 if (G.rng.Double() < BRANCH_PROB) { // and if branch probability is satisfied
                     double[] location = {Xpt()-0.02, Ypt()-0.02, Zpt()-0.02};
                     if(G.In(location[0], location[1], location[2])){

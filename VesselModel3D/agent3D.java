@@ -14,9 +14,8 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
     ////////////////
 
     int color; // the color of the agent
-    double elongation_length = 0; // UNIMPLEMENTED: The current length of the agent
-    double persistency_time = 0;
-    double[] pastLocation; // The past location of the agent (Has since been removed from implementation, but may be brought back)
+    double last_redirect_time;  // used for persistency time
+    double[] last_redirect_location; // used for elongation length
     boolean heparinOn = true; // Whether heparin is releasing VEGF or not
     int timeSinceLastBranch; // The time since the vessel has last branched
     boolean noOverlap = false; // determines if a body cell is overlapping with a MAP particle or not: if so it should move to not overlap (implementation not functioning, still in debugging process)
@@ -99,25 +98,24 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
 
     /**
      * Initializes head cell
-     * @param pastLocation the past location of the agent. (needed? may remove)
+     * @param last_redirect_location the location of the last time the agent redirected (used for elongation length).
      */
-    public void Init_HEAD_CELL(double[] pastLocation){
+    public void Init_HEAD_CELL(double[] last_redirect_location, double last_redirect_time){
         this.type = HEAD_CELL;
         this.color = HEAD_CELL_COLOR;
         this.radius = VESSEL_RADIUS;
-        this.pastLocation = pastLocation;
+        this.last_redirect_location = last_redirect_location;
+        this.last_redirect_time = last_redirect_time;
         this.timeSinceLastBranch = 0;
     }
 
     /**
      * Initializes body cell
-     * @param pastLocation the past location of the agent (not necessary for body cell?)
      */
-    public void Init_BODY_CELL(double[] pastLocation){
+    public void Init_BODY_CELL(){
         this.type = BODY_CELL;
         this.color = BODY_CELL_COLOR;
         this.radius = VESSEL_RADIUS;
-        this.pastLocation = pastLocation;
     }
 
     /**
@@ -249,7 +247,7 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
                 if (G.rng.Double() < BRANCH_PROB) { // and if branch probability is satisfied
                     double[] location = {Xpt()-0.02, Ypt()-0.02, Zpt()-0.02};
                     if(G.In(location[0], location[1], location[2])){
-                        G.NewAgentPT(location[0], location[1], location[2]).Init_HEAD_CELL(location); // create another head cell VERY CLOSE to the old one
+                        G.NewAgentPT(location[0], location[1], location[2]).Init_HEAD_CELL(location, G.GetTick()); // create another head cell VERY CLOSE to the old one
                         timeSinceLastBranch = 0;
                     }
                 }
@@ -326,9 +324,9 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
 
         // Leave a trail of body cells right behind
         if (G.In(Xpt()-.01, Ypt()-.01, Zpt()-.01)){
-            G.NewAgentPT(Xpt()-.01, Ypt()-.01, Zpt()-.01).Init_BODY_CELL(new double[]{Xpt(), Ypt(), Zpt()});
+            G.NewAgentPT(Xpt()-.01, Ypt()-.01, Zpt()-.01).Init_BODY_CELL();
         } else if (G.In(Xpt()+.01, Ypt()+.01, Zpt()+.01)){
-            G.NewAgentPT(Xpt()+.01, Ypt()+.01, Zpt()+.01).Init_BODY_CELL(new double[]{Xpt(), Ypt(), Zpt()});
+            G.NewAgentPT(Xpt()+.01, Ypt()+.01, Zpt()+.01).Init_BODY_CELL();
         }
     }
 

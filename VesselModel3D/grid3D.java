@@ -158,7 +158,7 @@ public class grid3D extends AgentGrid3D<agent3D> {
                 }
             }
             if (empty){ // BUT if it is empty, initialize a head vessel there and increment "i" which is a tally for how many vessels have been initialized
-                grid.NewAgentPT(location[0], location[1], location[2]).Init_HEAD_CELL(location);
+                grid.NewAgentPT(location[0], location[1], location[2]).Init_HEAD_CELL(location, grid.GetTick());
                 i++;
             }
         }

@@ -16,7 +16,8 @@ public class grid3D extends AgentGrid3D<agent3D> {
     // PARAMETERS //
     ////////////////
 
-    public static final double SCALE_FACTOR = 0.1;
+    public static final double SCALE_FACTOR = 0.1; // mm to units
+    public static final double TIME_SCALE_FACTOR = 60; // hours to ticks
 
     // VIEW: what agents to display
     public static final boolean VIEW_MAP = false;
@@ -38,8 +39,8 @@ public class grid3D extends AgentGrid3D<agent3D> {
     public static final int  AGE_BEFORE_CONSUME = 25; // age (in ticks) before a body cell can start consuming VEGF: to keep consumption from interacting with head cell gradient calculation
     public static final double MIGRATION_RATE = 1; // microns per hour
     public static final double VEGF_SENSITIVITY_THRESHOLD = 0.001; // Threshold for VEGF sensitivity
-    public static final double MAX_ELONGATION_LENGTH = 100;
-    public static final double MAX_PERSISTENCY_TIME = 100;
+    public static final double MAX_ELONGATION_LENGTH = 60 * (SCALE_FACTOR); // in mm
+    public static final double MAX_PERSISTENCY_TIME = 3 * (TIME_SCALE_FACTOR);
 
     // GRID PROPERTIES
     public static final int x = (int)(.5 * (SCALE_FACTOR)*1000); // dimension of the wound in mm
@@ -60,9 +61,6 @@ public class grid3D extends AgentGrid3D<agent3D> {
     public static final double MAP_RAD = (MAP_DIAMETER / 2.0);
     public static final double MAP_GAP_CENTERS = (MAP_GAP + (2 * MAP_RAD));
     public static final double VESSEL_RADIUS = VESSEL_DIAMETER/2.0;
-
-    // CONVERSIONS
-
 
     /////////////////
     // MAIN METHOD //

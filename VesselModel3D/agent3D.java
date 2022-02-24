@@ -55,6 +55,8 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
     ///////////////////////
 
     public static final double MAX_VELOCITY = 0.3; // Max speed of the head cell as it migrates.
+    public static final double SCALE_FACTOR = grid3D.SCALE_FACTOR;
+    public static final double TIME_CALE_FACTOR = grid3D.TIME_SCALE_FACTOR;
 
     int[] posneg = {1, -1}; // utility variable
     public static double MAP_RAD = grid3D.MAP_RAD; // the radius of the MAP particle
@@ -66,6 +68,8 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
     public static final int  AGE_BEFORE_CONSUME = grid3D.AGE_BEFORE_CONSUME; // The age a body cell must be before consuming VEGF (to prevent interference with gradients and head cell navigation)
     public static final double MIGRATION_RATE = grid3D.MIGRATION_RATE; // eventually microns per hour
     public static final double VEGF_SENSITIVITY_THRESHOLD = grid3D.VEGF_SENSITIVITY_THRESHOLD; // Threshold for VEGF sensitivity
+    public static final double MAX_ELONGATION_LENGTH = grid3D.MAX_ELONGATION_LENGTH; // max elongation length in mm
+    public static final double MAX_PERSISTENCY_TIME = grid3D.MAX_PERSISTENCY_TIME;
 
 
 

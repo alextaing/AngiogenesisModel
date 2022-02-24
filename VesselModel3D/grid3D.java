@@ -19,13 +19,13 @@ public class grid3D extends AgentGrid3D<agent3D> {
     public static final double SCALE_FACTOR = 0.1;
 
     // VIEW: what agents to display
-    public static final boolean VIEW_MAP = true;
+    public static final boolean VIEW_MAP = false;
     public static final boolean VIEW_HEP_ISLANDS = true;
     public static final boolean VIEW_MACROPHAGES = true;
     public static final boolean VIEW_VESSELS = true;
 
     // MAP GEL
-    public static final double HEPARIN_ISLAND_PERCENTAGE = 0.01; // enter as a decimal between 0 and 1, heparin microislands
+    public static final double HEPARIN_ISLAND_PERCENTAGE = 0.1; // enter as a decimal between 0 and 1, heparin microislands
     public static final double MAP_DIAMETER = 80 * (SCALE_FACTOR); //(microns)
     public static final double VESSEL_DIAMETER = 16 * (SCALE_FACTOR); //(microns)
     public static final double MAP_GAP =  18 * (SCALE_FACTOR); //(microns)
@@ -37,7 +37,7 @@ public class grid3D extends AgentGrid3D<agent3D> {
     public static final double VESSEL_VEGF_CONSUME = 0.001; // the amount of VEGF consumed by eligible cells (body cells older than AGE_BEFORE_CONSUME
     public static final int  AGE_BEFORE_CONSUME = 25; // age (in ticks) before a body cell can start consuming VEGF: to keep consumption from interacting with head cell gradient calculation
     public static final double MIGRATION_RATE = 1; // microns per hour
-    public static final double VEGF_SENSITIVITY_THRESHOLD = 0; // Threshold for VEGF sensitivity
+    public static final double VEGF_SENSITIVITY_THRESHOLD = 0.001; // Threshold for VEGF sensitivity
     public static final double MAX_ELONGATION_LENGTH = 100;
     public static final double MAX_PERSISTENCY_TIME = 100;
 

@@ -220,17 +220,17 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
     public void StepCell(double divProb) {
         assert G != null;
 
-        // Sensitivity Threshold
-        // Stop everything if there is not enough VEGF
-        if (G.VEGF.Get(Isq()) < VEGF_SENSITIVITY_THRESHOLD){
-            xVel = 0;
-            yVel = 0;
-            zVel = 0;
-            return;
-        }
-
         // HEAD CELLS
         if(type == HEAD_CELL) { // if type head cell
+
+            // Sensitivity Threshold
+            // Stop everything if there is not enough VEGF
+            if (G.VEGF.Get(Isq()) < VEGF_SENSITIVITY_THRESHOLD){
+                xVel = 0;
+                yVel = 0;
+                zVel = 0;
+                return;
+            }
 
             // TODO: Add max persistency time and elongation length
                 // keep going in direction
@@ -282,7 +282,7 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
     public void chemotaxis() {
 
         // RATE OF GROWTH
-        double FORCE_SCALER = 2;
+        double FORCE_SCALER = 1;
 
         // GRADIENTS
         double gradX;

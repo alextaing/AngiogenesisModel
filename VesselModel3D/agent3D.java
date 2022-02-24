@@ -14,8 +14,8 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
     ////////////////
 
     int color; // the color of the agent
-    double last_redirect_time;  // used for persistency time
-    double[] last_redirect_location; // used for elongation length
+    int persistency_time;  // time since last chose a direction
+    int last_redirect_location; // used for elongation length
     boolean heparinOn = true; // Whether heparin is releasing VEGF or not
     int timeSinceLastBranch; // The time since the vessel has last branched
     boolean noOverlap = false; // determines if a body cell is overlapping with a MAP particle or not: if so it should move to not overlap (implementation not functioning, still in debugging process)
@@ -104,12 +104,12 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
      * Initializes head cell
      * @param last_redirect_location the location of the last time the agent redirected (used for elongation length).
      */
-    public void Init_HEAD_CELL(double[] last_redirect_location, double last_redirect_time){
+    public void Init_HEAD_CELL(int last_redirect_location){
         this.type = HEAD_CELL;
         this.color = HEAD_CELL_COLOR;
         this.radius = VESSEL_RADIUS;
         this.last_redirect_location = last_redirect_location;
-        this.last_redirect_time = last_redirect_time;
+        this.persistency_time = -1;
         this.timeSinceLastBranch = 0;
     }
 
@@ -225,37 +225,41 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
         // HEAD CELLS
         if(type == HEAD_CELL) { // if type head cell
 
+            if (persistency_time != -1){
+                persistency_time += 1;
+            }
             // Sensitivity Threshold
             // Stop everything if there is not enough VEGF
             if (G.VEGF.Get(Isq()) < VEGF_SENSITIVITY_THRESHOLD){
-                xVel = 0;
-                yVel = 0;
-                zVel = 0;
                 return;
             }
 
             // TODO: Add max persistency time and elongation length
-                // keep going in direction
 
-            // TODO: Add migration rate
-            // TODO: Add VEGF sensitivity
-
-            chemotaxis(); // move up the gradient
-
-            // branch delay is present
-            timeSinceLastBranch += 1; // and add one to the time since last branch
-            // BRANCH SOMETIMES
-            if (timeSinceLastBranch > BRANCH_DELAY) { // if it has been long enough since last branch
-
-                // TODO: add dependency of branching on VEGF concentration
-                if (G.rng.Double() < BRANCH_PROB) { // and if branch probability is satisfied
-                    double[] location = {Xpt()-0.02, Ypt()-0.02, Zpt()-0.02};
-                    if(G.In(location[0], location[1], location[2])){
-                        G.NewAgentPT(location[0], location[1], location[2]).Init_HEAD_CELL(location, G.GetTick()); // create another head cell VERY CLOSE to the old one
-                        timeSinceLastBranch = 0;
-                    }
-                }
+            // if persistency time is -1, or both the persistency time and the elongation time has been exceeded (or equal to)
+            // persistency time = -1 is to allow new head cells to get a new direction
+            if ((persistency_time == -1)||((persistency_time >MAX_PERSISTENCY_TIME)&&(G.Dist(Isq(), last_redirect_location) >= MAX_ELONGATION_LENGTH))){
+                findNewDirection();
+                persistency_time = 0;
+                last_redirect_location = Isq();
             }
+            migrate_head();
+
+
+//            // branch delay is present
+//            timeSinceLastBranch += 1; // and add one to the time since last branch
+//            // BRANCH SOMETIMES
+//            if (timeSinceLastBranch > BRANCH_DELAY) { // if it has been long enough since last branch
+//
+//                // TODO: add dependency of branching on VEGF concentration
+//                if (G.rng.Double() < BRANCH_PROB) { // and if branch probability is satisfied
+//                    double[] location = {Xpt()-0.02, Ypt()-0.02, Zpt()-0.02};
+//                    if(G.In(location[0], location[1], location[2])){
+//                        G.NewAgentPT(location[0], location[1], location[2]).Init_HEAD_CELL(location); // create another head cell VERY CLOSE to the old one
+//                        timeSinceLastBranch = 0;
+//                    }
+//                }
+//            }
 
         // BODY CELLS
         } else if (type == BODY_CELL){
@@ -275,6 +279,75 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
         // HEPARIN MICROISLANDS
         } else if (type == HEPARIN_ISLAND){
             stepHeparinIslands();
+        }
+    }
+
+    /**
+     * Finds the new gradient direction once cell reaches elongation length and reaches persistency time
+     */
+    public void findNewDirection(){
+        // GRADIENTS
+        double gradX;
+        double gradY;
+        double gradZ;
+
+        try{ // Make sure that the coordinate in question is still within bounds to prevent runtime errors
+            assert G != null;
+            gradX=G.VEGF.GradientX(Xpt(), Ypt(), Zpt());
+            gradY=G.VEGF.GradientY(Xpt(), Ypt(), Zpt());
+            gradZ=G.VEGF.GradientZ(Xpt(), Ypt(), Zpt());
+        } catch (ArrayIndexOutOfBoundsException e) {
+            return;
+        }
+
+        // CALCULATE MOVEMENT (velocity in direction of highest VEGF gradient)
+        // Works by making a unit vector (divide each vector by the norm), and multiplying by the migration rate
+        // TODO: check math
+        double norm= Util.Norm(gradX,gradY,gradZ);
+        if(gradX!=0) {
+            xVel = gradX / norm * MIGRATION_RATE;
+        }
+        if(gradY!=0) {
+            yVel = gradY / norm * MIGRATION_RATE;
+        }
+        if(gradZ!=0) {
+            zVel = gradZ / norm * MIGRATION_RATE;
+        }
+    }
+
+    /**
+     * allows head to migrate in direction determined by findNewDirection
+     */
+    public void migrate_head(){
+
+        double FORCE_SCALER = 1;
+
+        double storeXVel = xVel;
+        double storeYVel = yVel;
+        double storeZVel  = zVel;
+
+        // SUM FORCES AND MOVE (make sure that there is no overlap with MAP particle or Heparin microIslands)
+        SumForcesTyped(radius+MAP_RAD,(overlap, other)-> overlap*FORCE_SCALER, new int[] {MAP_PARTICLE, HEPARIN_ISLAND});
+
+        // MAKE VESSELS NOT CLUMP TOGETHER! stay away from each other.
+        SumForcesTyped(10,(overlap, other)-> overlap*FORCE_SCALER, new int[] {HEAD_CELL});
+
+        // max speed
+        CapVelocity(MAX_VELOCITY);
+
+        // call actual movement.
+        ForceMove();
+
+        xVel = storeXVel;
+        yVel = storeYVel;
+        zVel = storeZVel;
+
+        // Leave a trail of body cells right behind
+        assert G != null;
+        if (G.In(Xpt()-.01, Ypt()-.01, Zpt()-.01)){
+            G.NewAgentPT(Xpt()-.01, Ypt()-.01, Zpt()-.01).Init_BODY_CELL();
+        } else if (G.In(Xpt()+.01, Ypt()+.01, Zpt()+.01)){
+            G.NewAgentPT(Xpt()+.01, Ypt()+.01, Zpt()+.01).Init_BODY_CELL();
         }
     }
 

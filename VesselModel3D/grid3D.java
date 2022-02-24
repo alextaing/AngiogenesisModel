@@ -8,8 +8,6 @@ import HAL.Interfaces.DoubleToInt;
 import HAL.Rand;
 import HAL.Util;
 
-import java.util.concurrent.ForkJoinWorkerThread;
-
 public class grid3D extends AgentGrid3D<agent3D> {
 
     ////////////////
@@ -39,15 +37,15 @@ public class grid3D extends AgentGrid3D<agent3D> {
     public static final int  AGE_BEFORE_CONSUME = 25; // age (in ticks) before a body cell can start consuming VEGF: to keep consumption from interacting with head cell gradient calculation
     public static final double MIGRATION_RATE = 1; // microns per hour
     public static final double VEGF_SENSITIVITY_THRESHOLD = 0.001; // Threshold for VEGF sensitivity
-    public static final double MAX_ELONGATION_LENGTH = 60 * (SCALE_FACTOR); // in mm
+    public static final double MAX_ELONGATION_LENGTH = 40 * (SCALE_FACTOR); // in mm
     public static final double MAX_PERSISTENCY_TIME = 3 * (TIME_SCALE_FACTOR);
+
 
     // GRID PROPERTIES
     public static final int x = (int)(.5 * (SCALE_FACTOR)*1000); // dimension of the wound in mm
     public static final int y = (int)(.5 * (SCALE_FACTOR)*1000); // dimension of the wound in mm
     public static final int z = (int)(1 * (SCALE_FACTOR)*1000); // dimension of the wound in mm
-    public final static int TICK_PAUSE = 1; // The time between ticks (not essential to model, just determines running speed)
-    public final static int TIMESTEPS = 10000; // how long will the simulation run?
+    public final static int RUNTIME = (int)(48 *TIME_SCALE_FACTOR); // how long will the simulation run?
     Rand rng = new Rand();
 
     // DO NOT MODIFY
@@ -78,7 +76,7 @@ public class grid3D extends AgentGrid3D<agent3D> {
         Init_Vessels(woundGrid);
 
         // TICK ACTIONS
-        for (int step = 0; step < TIMESTEPS; step++) {  // For each timestep
+        for (int step = 0; step < RUNTIME; step++) {  // For each timestep
             woundGrid.StepVEGF(); // Step the gradient
             woundGrid.StepCells(0.5); // Step all the cells
             woundGrid.DrawGrid(window); // Draw the updated window
@@ -156,7 +154,7 @@ public class grid3D extends AgentGrid3D<agent3D> {
                 }
             }
             if (empty){ // BUT if it is empty, initialize a head vessel there and increment "i" which is a tally for how many vessels have been initialized
-                grid.NewAgentPT(location[0], location[1], location[2]).Init_HEAD_CELL(location, grid.GetTick());
+                grid.NewAgentPT(location[0], location[1], location[2]).Init_HEAD_CELL(grid.I(location[0], location[1], location[2]));
                 i++;
             }
         }

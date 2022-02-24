@@ -14,14 +14,12 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
     ////////////////
 
     int color; // the color of the agent
-//    int length = 0; // UNIMPLEMENTED: The current length of the agent
-//    int origin;
-//    boolean arrived; // UNIMPLEMENTED: Whether the head cell has arrived at the wound center
+    double elongation_length = 0; // UNIMPLEMENTED: The current length of the agent
+    double persistency_time = 0;
     double[] pastLocation; // The past location of the agent (Has since been removed from implementation, but may be brought back)
     boolean heparinOn = true; // Whether heparin is releasing VEGF or not
     int timeSinceLastBranch; // The time since the vessel has last branched
     boolean noOverlap = false; // determines if a body cell is overlapping with a MAP particle or not: if so it should move to not overlap (implementation not functioning, still in debugging process)
-//    public static boolean start_endo = false; // UNIMPLEMENTED: determines start time of vessel growth after macrophages begin
 
     // Heparin MicroIslands (for making surface gradients)
     private int[] zero_VEGF; // Neighborhood inside the heparin island that should not have any gradient
@@ -67,7 +65,8 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
     public static final double BRANCH_PROB = grid3D.BRANCH_PROB; // the probability of branching when branching is possible (^^^)
     public static final double VESSEL_VEGF_CONSUME = grid3D.VESSEL_VEGF_CONSUME; // The amount of VEGF a body cell consumes once it is over AGE_BEFORE_CONSUME
     public static final int  AGE_BEFORE_CONSUME = grid3D.AGE_BEFORE_CONSUME; // The age a body cell must be before consuming VEGF (to prevent interference with gradients and head cell navigation)
-
+    public static final double MIGRATION_RATE = grid3D.MIGRATION_RATE; // eventually microns per hour
+    public static final double VEGF_SENSITIVITY_THRESHOLD = grid3D.VEGF_SENSITIVITY_THRESHOLD; // Threshold for VEGF sensitivity
 
 
 
@@ -221,6 +220,15 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
     public void StepCell(double divProb) {
         assert G != null;
 
+        // Sensitivity Threshold
+        // Stop everything if there is not enough VEGF
+        if (G.VEGF.Get(Isq()) < VEGF_SENSITIVITY_THRESHOLD){
+            xVel = 0;
+            yVel = 0;
+            zVel = 0;
+            return;
+        }
+
         // HEAD CELLS
         if(type == HEAD_CELL) { // if type head cell
 
@@ -229,6 +237,7 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
 
             // TODO: Add migration rate
             // TODO: Add VEGF sensitivity
+
             chemotaxis(); // move up the gradient
 
             // branch delay is present
@@ -273,8 +282,7 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
     public void chemotaxis() {
 
         // RATE OF GROWTH
-        double CHEMOTAX_RATE = 1;
-        double FORCE_SCALER = 1;
+        double FORCE_SCALER = 2;
 
         // GRADIENTS
         double gradX;
@@ -282,6 +290,7 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
         double gradZ;
 
         try{ // Make sure that the coordinate in question is still within bounds to prevent runtime errors
+            assert G != null;
             gradX=G.VEGF.GradientX(Xpt(), Ypt(), Zpt());
             gradY=G.VEGF.GradientY(Xpt(), Ypt(), Zpt());
             gradZ=G.VEGF.GradientZ(Xpt(), Ypt(), Zpt());
@@ -290,15 +299,17 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
         }
 
         // CALCULATE MOVEMENT (velocity in direction of highest VEGF gradient)
+        // Works by making a unit vector (divide each vector by the norm), and multiplying by the migration rate
+        // TODO: check math
         double norm= Util.Norm(gradX,gradY,gradZ);
         if(gradX!=0) {
-            xVel += gradX / norm * CHEMOTAX_RATE;
+            xVel = gradX / norm * MIGRATION_RATE;
         }
         if(gradY!=0) {
-            yVel += gradY / norm * CHEMOTAX_RATE;
+            yVel = gradY / norm * MIGRATION_RATE;
         }
         if(gradZ!=0) {
-            zVel += gradZ / norm * CHEMOTAX_RATE;
+            zVel = gradZ / norm * MIGRATION_RATE;
         }
 
         // SUM FORCES AND MOVE (make sure that there is no overlap with MAP particle or Heparin microIslands)
@@ -306,7 +317,6 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
 
         // MAKE VESSELS NOT CLUMP TOGETHER! stay away from each other.
         SumForcesTyped(10,(overlap, other)-> overlap*FORCE_SCALER, new int[] {HEAD_CELL});
-
 
         // max speed
         CapVelocity(MAX_VELOCITY);

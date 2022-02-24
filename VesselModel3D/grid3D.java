@@ -31,14 +31,19 @@ public class grid3D extends AgentGrid3D<agent3D> {
 
     // VESSELS
     public static final int NUM_VESSELS = 12; // The number of head vessels to start the model
-    public static final int BRANCH_DELAY = 50; // The minimum amount of ticks between ticks (model specific, included in Mehdizadeh et al.)
-    public static final double BRANCH_PROB = 0.001; // The probability of a head cell to branch given that it has been longer since BRANCH_DELAY since it last branched
-    public static final double VESSEL_VEGF_CONSUME = 0.001; // the amount of VEGF consumed by eligible cells (body cells older than AGE_BEFORE_CONSUME
+    public static final double VESSEL_VEGF_CONSUME = 0.0001; // the amount of VEGF consumed by eligible cells (body cells older than AGE_BEFORE_CONSUME
     public static final int  AGE_BEFORE_CONSUME = 25; // age (in ticks) before a body cell can start consuming VEGF: to keep consumption from interacting with head cell gradient calculation
     public static final double MIGRATION_RATE = 1; // microns per hour
     public static final double VEGF_SENSITIVITY_THRESHOLD = 0.001; // Threshold for VEGF sensitivity
     public static final double MAX_ELONGATION_LENGTH = 40 * (SCALE_FACTOR); // in mm
     public static final double MAX_PERSISTENCY_TIME = 3 * (TIME_SCALE_FACTOR);
+    public static final double BRANCH_DELAY = 4 * (TIME_SCALE_FACTOR); // The minimum amount of ticks between ticks (model specific, included in Mehdizadeh et al.)
+    // BRANCHING PROBABILITY AND THRESHOLDS_ PROBABILITIES NEED PARAMETERIZED BUT COULD STAY FIXED
+    public final static double LOW_BRANCHING_PROBABILITY= 0.4; // probability of branching while VEGF is under LOW_MED_VEGF_THRESHOLD
+    public final static double LOW_MED_VEGF_THRESHOLD = 0.05;
+    public final static double MED_BRANCHING_PROBABILITY= 0.55; // probability of branching while VEGF is between LOW_MED_VEGF_THRESHOLD and MED_HIGH_VEGF_THRESHOLD
+    public final static double MED_HIGH_VEGF_THRESHOLD = 0.25;
+    public final static double HIGH_BRANCHING_PROBABILITY= 0.9; // probability of branching while VEGF is above MED_HIGH_VEGF_THRESHOLD
 
 
     // GRID PROPERTIES
@@ -146,7 +151,7 @@ public class grid3D extends AgentGrid3D<agent3D> {
         boolean empty = true;  // whether the location is occupied with MAP gel (assume is empty)
         for (int i = 0; i < NUM_VESSELS;) {  // for as many vessels you want to start with  ("i" is tally for how many successful head vessels have been initialized)
             empty = true; // assume that the desired location is empty
-            double[] location = {x*grid.rng.Double(), y*grid.rng.Double(), 1.5*VESSEL_RADIUS}; // starts on the z=1.5*vessel_radius plane (i.e the beginning of the wound, but with some leeway)
+            double[] location = {(x/2.0)*grid.rng.Double()+(x/4.0), (y/2.0)*grid.rng.Double()+(y/4.0), 1.5*VESSEL_RADIUS}; // starts on the z=1.5*vessel_radius plane (i.e the beginning of the wound, but with some leeway)
             for (agent3D agent : grid.IterAgentsRad(location[0], location[1], location[2], MAP_RAD+VESSEL_RADIUS)) { // Iterate through all locations around the desired point in a radius equal to MAP radius
                 if (agent.type == MAP_PARTICLE || agent.type == HEPARIN_ISLAND) { // If there is a MAP particle center in that radius (meaning that it overlaps with the desired location)
                     empty = false; // the desired location is not empty

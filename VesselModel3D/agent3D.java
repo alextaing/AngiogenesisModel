@@ -14,14 +14,13 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
     ////////////////
 
     int color; // the color of the agent
-//    int length = 0; // UNIMPLEMENTED: The current length of the agent
-//    int origin;
-//    boolean arrived; // UNIMPLEMENTED: Whether the head cell has arrived at the wound center
-    double[] pastLocation; // The past location of the agent (Has since been removed from implementation, but may be brought back)
+    int persistency_time;  // time since last chose a direction
+    double elongation_length; // used for elongation length: keeps the last location where a redirect was done (last time that the head cell found a new gradient direction)
     boolean heparinOn = true; // Whether heparin is releasing VEGF or not
     int timeSinceLastBranch; // The time since the vessel has last branched
     boolean noOverlap = false; // determines if a body cell is overlapping with a MAP particle or not: if so it should move to not overlap (implementation not functioning, still in debugging process)
-//    public static boolean start_endo = false; // UNIMPLEMENTED: determines start time of vessel growth after macrophages begin
+    double branching_probability;
+    double[] lastPlace; // last place that a body cell was placed
 
     // Heparin MicroIslands (for making surface gradients)
     private int[] zero_VEGF; // Neighborhood inside the heparin island that should not have any gradient
@@ -58,16 +57,25 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
     ///////////////////////
 
     public static final double MAX_VELOCITY = 0.3; // Max speed of the head cell as it migrates.
+    public static final double SCALE_FACTOR = grid3D.SCALE_FACTOR;
+    public static final double TIME_CALE_FACTOR = grid3D.TIME_SCALE_FACTOR;
 
     int[] posneg = {1, -1}; // utility variable
     public static double MAP_RAD = grid3D.MAP_RAD; // the radius of the MAP particle
     public static final double HEPARIN_ISLAND_PERCENTAGE = grid3D.HEPARIN_ISLAND_PERCENTAGE; // the proportion of heparin MicroIslands to MAP particle
     public static final double VESSEL_RADIUS = grid3D.VESSEL_RADIUS; // the radius of the vessel cells (head and body cells)
-    public static final int BRANCH_DELAY = grid3D.BRANCH_DELAY; // the delay after branching that a head cell must wait before branching again
-    public static final double BRANCH_PROB = grid3D.BRANCH_PROB; // the probability of branching when branching is possible (^^^)
     public static final double VESSEL_VEGF_CONSUME = grid3D.VESSEL_VEGF_CONSUME; // The amount of VEGF a body cell consumes once it is over AGE_BEFORE_CONSUME
     public static final int  AGE_BEFORE_CONSUME = grid3D.AGE_BEFORE_CONSUME; // The age a body cell must be before consuming VEGF (to prevent interference with gradients and head cell navigation)
-
+    public static final double MIGRATION_RATE = grid3D.MIGRATION_RATE; // eventually microns per hour
+    public static final double VEGF_SENSITIVITY_THRESHOLD = grid3D.VEGF_SENSITIVITY_THRESHOLD; // Threshold for VEGF sensitivity
+    public static final double MAX_ELONGATION_LENGTH = grid3D.MAX_ELONGATION_LENGTH; // max elongation length in mm
+    public static final double MAX_PERSISTENCY_TIME = grid3D.MAX_PERSISTENCY_TIME;
+    public static final double BRANCH_DELAY = grid3D.BRANCH_DELAY; // the delay after branching that a head cell must wait before branching again
+    public final static double LOW_BRANCHING_PROBABILITY= grid3D.LOW_BRANCHING_PROBABILITY; // probability of branching while VEGF is under LOW_MED_VEGF_THRESHOLD
+    public final static double LOW_MED_VEGF_THRESHOLD = grid3D.LOW_MED_VEGF_THRESHOLD;
+    public final static double MED_BRANCHING_PROBABILITY= grid3D.MED_BRANCHING_PROBABILITY; // probability of branching while VEGF is between LOW_MED_VEGF_THRESHOLD and MED_HIGH_VEGF_THRESHOLD
+    public final static double MED_HIGH_VEGF_THRESHOLD = grid3D.MED_HIGH_VEGF_THRESHOLD;
+    public final static double HIGH_BRANCHING_PROBABILITY= grid3D.HIGH_BRANCHING_PROBABILITY; // probability of branching while VEGF is above MED_HIGH_VEGF_THRESHOLD
 
 
 
@@ -100,25 +108,24 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
 
     /**
      * Initializes head cell
-     * @param pastLocation the past location of the agent. (needed? may remove)
      */
-    public void Init_HEAD_CELL(double[] pastLocation){
+    public void Init_HEAD_CELL(){
         this.type = HEAD_CELL;
         this.color = HEAD_CELL_COLOR;
         this.radius = VESSEL_RADIUS;
-        this.pastLocation = pastLocation;
+        this.elongation_length = 0;
+        this.persistency_time = -1;
         this.timeSinceLastBranch = 0;
+        this.lastPlace = new double[]{Xpt(), Ypt(), Zpt()};
     }
 
     /**
      * Initializes body cell
-     * @param pastLocation the past location of the agent (not necessary for body cell?)
      */
-    public void Init_BODY_CELL(double[] pastLocation){
+    public void Init_BODY_CELL(){
         this.type = BODY_CELL;
         this.color = BODY_CELL_COLOR;
         this.radius = VESSEL_RADIUS;
-        this.pastLocation = pastLocation;
     }
 
     /**
@@ -224,27 +231,38 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
         // HEAD CELLS
         if(type == HEAD_CELL) { // if type head cell
 
-            // TODO: Add max persistency time and elongation length
-                // keep going in direction
+            // Consistently add to persistency time (-1 is a new head cell, so special case)
+            if (persistency_time != -1){
+                persistency_time += 1;
+                timeSinceLastBranch += 1;
+            }
+            // Sensitivity Threshold
+            // Stop everything if there is not enough VEGF
+            if (G.VEGF.Get(Isq()) < VEGF_SENSITIVITY_THRESHOLD){
+                return;
+            }
 
-            // TODO: Add migration rate
-            // TODO: Add VEGF sensitivity
-            chemotaxis(); // move up the gradient
-
-            // branch delay is present
-            timeSinceLastBranch += 1; // and add one to the time since last branch
-            // BRANCH SOMETIMES
-            if (timeSinceLastBranch > BRANCH_DELAY) { // if it has been long enough since last branch
-
-                // TODO: add dependency of branching on VEGF concentration
-                if (G.rng.Double() < BRANCH_PROB) { // and if branch probability is satisfied
-                    double[] location = {Xpt()-0.02, Ypt()-0.02, Zpt()-0.02};
-                    if(G.In(location[0], location[1], location[2])){
-                        G.NewAgentPT(location[0], location[1], location[2]).Init_HEAD_CELL(location); // create another head cell VERY CLOSE to the old one
-                        timeSinceLastBranch = 0;
+            // if persistency time is -1, or both the persistency time and the elongation time has been exceeded (or equal to)
+            // persistency time = -1 is to allow new head cells to get a new direction
+            if ((persistency_time == -1)||((persistency_time >MAX_PERSISTENCY_TIME)&&(elongation_length+G.Dist(Xpt(), Ypt(), Zpt(), lastPlace[0], lastPlace[1], lastPlace[2]) >= MAX_ELONGATION_LENGTH))){
+                // if persistency time has been reached and elongation length (plus length from last place) has exceeded max:
+                // looks better when it is outside this if statement!
+                CalculateBranchingProbability();
+                if (timeSinceLastBranch > BRANCH_DELAY){
+                    if (G.rng.Double() < branching_probability) { // and if branch probability is satisfied
+                        double[] location = {Xpt() - 0.02, Ypt() - 0.02, Zpt() - 0.02};
+                        if (G.In(location[0], location[1], location[2])) {
+                            G.NewAgentPT(location[0], location[1], location[2]).Init_HEAD_CELL(); // create another head cell VERY CLOSE to the old one
+                            timeSinceLastBranch = 0;
+                        }
                     }
                 }
+                findNewDirection();
+                persistency_time = 0;
+                elongation_length = 0;
             }
+
+            migrate_head();
 
         // BODY CELLS
         } else if (type == BODY_CELL){
@@ -268,20 +286,16 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
     }
 
     /**
-     * Moves the cell (head cell) up the VEGF concentration gradient.
+     * Finds the new gradient direction once cell reaches elongation length and reaches persistency time
      */
-    public void chemotaxis() {
-
-        // RATE OF GROWTH
-        double CHEMOTAX_RATE = 1;
-        double FORCE_SCALER = 1;
-
+    public void findNewDirection(){
         // GRADIENTS
         double gradX;
         double gradY;
         double gradZ;
 
         try{ // Make sure that the coordinate in question is still within bounds to prevent runtime errors
+            assert G != null;
             gradX=G.VEGF.GradientX(Xpt(), Ypt(), Zpt());
             gradY=G.VEGF.GradientY(Xpt(), Ypt(), Zpt());
             gradZ=G.VEGF.GradientZ(Xpt(), Ypt(), Zpt());
@@ -290,16 +304,30 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
         }
 
         // CALCULATE MOVEMENT (velocity in direction of highest VEGF gradient)
+        // Works by making a unit vector (divide each vector by the norm), and multiplying by the migration rate
+        // TODO: check math
         double norm= Util.Norm(gradX,gradY,gradZ);
         if(gradX!=0) {
-            xVel += gradX / norm * CHEMOTAX_RATE;
+            xVel = gradX / norm * MIGRATION_RATE;
         }
         if(gradY!=0) {
-            yVel += gradY / norm * CHEMOTAX_RATE;
+            yVel = gradY / norm * MIGRATION_RATE;
         }
         if(gradZ!=0) {
-            zVel += gradZ / norm * CHEMOTAX_RATE;
+            zVel = gradZ / norm * MIGRATION_RATE;
         }
+    }
+
+    /**
+     * allows head to migrate in direction determined by findNewDirection
+     */
+    public void migrate_head(){
+
+        double FORCE_SCALER = 1;
+
+        double storeXVel = xVel;
+        double storeYVel = yVel;
+        double storeZVel  = zVel;
 
         // SUM FORCES AND MOVE (make sure that there is no overlap with MAP particle or Heparin microIslands)
         SumForcesTyped(radius+MAP_RAD,(overlap, other)-> overlap*FORCE_SCALER, new int[] {MAP_PARTICLE, HEPARIN_ISLAND});
@@ -307,18 +335,45 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
         // MAKE VESSELS NOT CLUMP TOGETHER! stay away from each other.
         SumForcesTyped(10,(overlap, other)-> overlap*FORCE_SCALER, new int[] {HEAD_CELL});
 
-
         // max speed
         CapVelocity(MAX_VELOCITY);
 
         // call actual movement.
         ForceMove();
 
+        xVel = storeXVel;
+        yVel = storeYVel;
+        zVel = storeZVel;
+
         // Leave a trail of body cells right behind
-        if (G.In(Xpt()-.01, Ypt()-.01, Zpt()-.01)){
-            G.NewAgentPT(Xpt()-.01, Ypt()-.01, Zpt()-.01).Init_BODY_CELL(new double[]{Xpt(), Ypt(), Zpt()});
-        } else if (G.In(Xpt()+.01, Ypt()+.01, Zpt()+.01)){
-            G.NewAgentPT(Xpt()+.01, Ypt()+.01, Zpt()+.01).Init_BODY_CELL(new double[]{Xpt(), Ypt(), Zpt()});
+        assert G != null;
+        if (persistency_time != -1){ // don't want very beginning to have body cells, they eat VEGF before first head cells can even move
+            if (G.Dist(Xpt(), Ypt(), Zpt(), lastPlace[0], lastPlace[1], lastPlace[2])>= VESSEL_RADIUS){
+                if (G.In(Xpt()-.01, Ypt()-.01, Zpt()-.01)){
+                    G.NewAgentPT(Xpt()-.01, Ypt()-.01, Zpt()-.01).Init_BODY_CELL();
+                    lastPlace[0] = Xpt();
+                    lastPlace[1] = Ypt();
+                    lastPlace[2] = Zpt();
+                    elongation_length += VESSEL_RADIUS;
+                } else if (G.In(Xpt()+.01, Ypt()+.01, Zpt()+.01)){
+                    G.NewAgentPT(Xpt()+.01, Ypt()+.01, Zpt()+.01).Init_BODY_CELL();
+                    lastPlace[0] = Xpt();
+                    lastPlace[1] = Ypt();
+                    lastPlace[2] = Zpt();
+                    elongation_length += VESSEL_RADIUS;
+                }
+            }
+        }
+    }
+
+    public void CalculateBranchingProbability(){
+        assert G != null;
+        if (G.VEGF.Get(Isq()) < LOW_MED_VEGF_THRESHOLD){
+            branching_probability = LOW_BRANCHING_PROBABILITY;
+        } else if (G.VEGF.Get(Isq()) < MED_HIGH_VEGF_THRESHOLD){
+            branching_probability = MED_BRANCHING_PROBABILITY;
+        } else if (G.VEGF.Get(Isq()) > HIGH_BRANCHING_PROBABILITY){
+            branching_probability = HIGH_BRANCHING_PROBABILITY;
         }
     }
 
@@ -359,13 +414,6 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
             }
         }
     }
-
-    public void move_Macrophages() {
-        // TODO
-        SumForcesTyped(radius+MAP_RAD,(overlap, other)-> overlap, new int[] {MAP_PARTICLE, HEPARIN_ISLAND});
-
-    }
-
 }
 
 

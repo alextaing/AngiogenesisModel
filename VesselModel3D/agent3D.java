@@ -15,11 +15,12 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
 
     int color; // the color of the agent
     int persistency_time;  // time since last chose a direction
-    int last_redirect_location; // used for elongation length
+    double elongation_length; // used for elongation length: keeps the last location where a redirect was done (last time that the head cell found a new gradient direction)
     boolean heparinOn = true; // Whether heparin is releasing VEGF or not
     int timeSinceLastBranch; // The time since the vessel has last branched
     boolean noOverlap = false; // determines if a body cell is overlapping with a MAP particle or not: if so it should move to not overlap (implementation not functioning, still in debugging process)
     double branching_probability;
+    double[] lastPlace; // last place that a body cell was placed
 
     // Heparin MicroIslands (for making surface gradients)
     private int[] zero_VEGF; // Neighborhood inside the heparin island that should not have any gradient
@@ -107,15 +108,15 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
 
     /**
      * Initializes head cell
-     * @param last_redirect_location the location of the last time the agent redirected (used for elongation length).
      */
-    public void Init_HEAD_CELL(int last_redirect_location){
+    public void Init_HEAD_CELL(){
         this.type = HEAD_CELL;
         this.color = HEAD_CELL_COLOR;
         this.radius = VESSEL_RADIUS;
-        this.last_redirect_location = last_redirect_location;
+        this.elongation_length = 0;
         this.persistency_time = -1;
         this.timeSinceLastBranch = 0;
+        this.lastPlace = new double[]{Xpt(), Ypt(), Zpt()};
     }
 
     /**
@@ -243,21 +244,22 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
 
             // if persistency time is -1, or both the persistency time and the elongation time has been exceeded (or equal to)
             // persistency time = -1 is to allow new head cells to get a new direction
-            if ((persistency_time == -1)||((persistency_time >MAX_PERSISTENCY_TIME)&&(G.Dist(Isq(), last_redirect_location) >= MAX_ELONGATION_LENGTH))){
+            if ((persistency_time == -1)||((persistency_time >MAX_PERSISTENCY_TIME)&&(elongation_length+G.Dist(Xpt(), Ypt(), Zpt(), lastPlace[0], lastPlace[1], lastPlace[2]) >= MAX_ELONGATION_LENGTH))){
+                // if persistency time has been reached and elongation length (plus length from last place) has exceeded max:
                 // looks better when it is outside this if statement!
                 CalculateBranchingProbability();
                 if (timeSinceLastBranch > BRANCH_DELAY){
                     if (G.rng.Double() < branching_probability) { // and if branch probability is satisfied
                         double[] location = {Xpt() - 0.02, Ypt() - 0.02, Zpt() - 0.02};
                         if (G.In(location[0], location[1], location[2])) {
-                            G.NewAgentPT(location[0], location[1], location[2]).Init_HEAD_CELL(Isq()); // create another head cell VERY CLOSE to the old one
+                            G.NewAgentPT(location[0], location[1], location[2]).Init_HEAD_CELL(); // create another head cell VERY CLOSE to the old one
                             timeSinceLastBranch = 0;
                         }
                     }
                 }
                 findNewDirection();
                 persistency_time = 0;
-                last_redirect_location = Isq();
+                elongation_length = 0;
             }
 
             migrate_head();
@@ -346,10 +348,20 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
         // Leave a trail of body cells right behind
         assert G != null;
         if (persistency_time != -1){ // don't want very beginning to have body cells, they eat VEGF before first head cells can even move
-            if (G.In(Xpt()-.01, Ypt()-.01, Zpt()-.01)){
-                G.NewAgentPT(Xpt()-.01, Ypt()-.01, Zpt()-.01).Init_BODY_CELL();
-            } else if (G.In(Xpt()+.01, Ypt()+.01, Zpt()+.01)){
-                G.NewAgentPT(Xpt()+.01, Ypt()+.01, Zpt()+.01).Init_BODY_CELL();
+            if (G.Dist(Xpt(), Ypt(), Zpt(), lastPlace[0], lastPlace[1], lastPlace[2])>= VESSEL_RADIUS){
+                if (G.In(Xpt()-.01, Ypt()-.01, Zpt()-.01)){
+                    G.NewAgentPT(Xpt()-.01, Ypt()-.01, Zpt()-.01).Init_BODY_CELL();
+                    lastPlace[0] = Xpt();
+                    lastPlace[1] = Ypt();
+                    lastPlace[2] = Zpt();
+                    elongation_length += VESSEL_RADIUS;
+                } else if (G.In(Xpt()+.01, Ypt()+.01, Zpt()+.01)){
+                    G.NewAgentPT(Xpt()+.01, Ypt()+.01, Zpt()+.01).Init_BODY_CELL();
+                    lastPlace[0] = Xpt();
+                    lastPlace[1] = Ypt();
+                    lastPlace[2] = Zpt();
+                    elongation_length += VESSEL_RADIUS;
+                }
             }
         }
     }
@@ -362,62 +374,6 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
             branching_probability = MED_BRANCHING_PROBABILITY;
         } else if (G.VEGF.Get(Isq()) > HIGH_BRANCHING_PROBABILITY){
             branching_probability = HIGH_BRANCHING_PROBABILITY;
-        }
-    }
-
-    /**
-     * Moves the cell (head cell) up the VEGF concentration gradient.
-     */
-    public void chemotaxis() {
-
-        // RATE OF GROWTH
-        double FORCE_SCALER = 1;
-
-        // GRADIENTS
-        double gradX;
-        double gradY;
-        double gradZ;
-
-        try{ // Make sure that the coordinate in question is still within bounds to prevent runtime errors
-            assert G != null;
-            gradX=G.VEGF.GradientX(Xpt(), Ypt(), Zpt());
-            gradY=G.VEGF.GradientY(Xpt(), Ypt(), Zpt());
-            gradZ=G.VEGF.GradientZ(Xpt(), Ypt(), Zpt());
-        } catch (ArrayIndexOutOfBoundsException e) {
-            return;
-        }
-
-        // CALCULATE MOVEMENT (velocity in direction of highest VEGF gradient)
-        // Works by making a unit vector (divide each vector by the norm), and multiplying by the migration rate
-        // TODO: check math
-        double norm= Util.Norm(gradX,gradY,gradZ);
-        if(gradX!=0) {
-            xVel = gradX / norm * MIGRATION_RATE;
-        }
-        if(gradY!=0) {
-            yVel = gradY / norm * MIGRATION_RATE;
-        }
-        if(gradZ!=0) {
-            zVel = gradZ / norm * MIGRATION_RATE;
-        }
-
-        // SUM FORCES AND MOVE (make sure that there is no overlap with MAP particle or Heparin microIslands)
-        SumForcesTyped(radius+MAP_RAD,(overlap, other)-> overlap*FORCE_SCALER, new int[] {MAP_PARTICLE, HEPARIN_ISLAND});
-
-        // MAKE VESSELS NOT CLUMP TOGETHER! stay away from each other.
-        SumForcesTyped(10,(overlap, other)-> overlap*FORCE_SCALER, new int[] {HEAD_CELL});
-
-        // max speed
-        CapVelocity(MAX_VELOCITY);
-
-        // call actual movement.
-        ForceMove();
-
-        // Leave a trail of body cells right behind
-        if (G.In(Xpt()-.01, Ypt()-.01, Zpt()-.01)){
-            G.NewAgentPT(Xpt()-.01, Ypt()-.01, Zpt()-.01).Init_BODY_CELL();
-        } else if (G.In(Xpt()+.01, Ypt()+.01, Zpt()+.01)){
-            G.NewAgentPT(Xpt()+.01, Ypt()+.01, Zpt()+.01).Init_BODY_CELL();
         }
     }
 
@@ -458,13 +414,6 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
             }
         }
     }
-
-    public void move_Macrophages() {
-        // TODO
-        SumForcesTyped(radius+MAP_RAD,(overlap, other)-> overlap, new int[] {MAP_PARTICLE, HEPARIN_ISLAND});
-
-    }
-
 }
 
 

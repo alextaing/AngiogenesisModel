@@ -56,7 +56,7 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
     // UTILITY VARIABLES //
     ///////////////////////
 
-    public static final double MAX_VELOCITY = 0.3; // Max speed of the head cell as it migrates.
+    public static final double MAX_VELOCITY = grid3D.MIGRATION_RATE; // Max speed of the head cell as it migrates.
     public static final double SCALE_FACTOR = grid3D.SCALE_FACTOR;
     public static final double TIME_CALE_FACTOR = grid3D.TIME_SCALE_FACTOR;
 

@@ -8,34 +8,45 @@ import HAL.Interfaces.DoubleToInt;
 import HAL.Rand;
 import HAL.Util;
 
+import java.util.Arrays;
+
 public class grid3D extends AgentGrid3D<agent3D> {
 
     ////////////////
     // PARAMETERS //
     ////////////////
 
+    // SCALE FACTORS
     public static final double SCALE_FACTOR = 0.1; // mm to units
-    public static final double TIME_SCALE_FACTOR = 60; // hours to ticks
+    public static final double TIME_SCALE_FACTOR = 10; // hours to ticks (normally 60?)
+
+    // GRID PROPERTIES
+    public static final int x = (int)(.5 * (SCALE_FACTOR)*1000); // dimension of the wound in mm
+    public static final int y = (int)(.5 * (SCALE_FACTOR)*1000); // dimension of the wound in mm
+    public static final int z = (int)(.5 * (SCALE_FACTOR)*1000); // dimension of the wound in mm
+    public final static int RUNTIME = (int)(168 *TIME_SCALE_FACTOR); // how long will the simulation run?
+    public static final double DIFFUSION_COEFFICIENT = 0.1; // diffusion coefficient, ADI
+    Rand rng = new Rand();
 
     // VIEW: what agents to display
-    public static final boolean VIEW_MAP = false;
+    public static final boolean VIEW_MAP = true;
     public static final boolean VIEW_HEP_ISLANDS = true;
     public static final boolean VIEW_VESSELS = true;
 
     // MAP GEL
-    public static final double HEPARIN_ISLAND_PERCENTAGE = 0.1; // enter as a decimal between 0 and 1, heparin microislands
+    public static final double HEPARIN_ISLAND_PERCENTAGE = 0.05; // enter as a decimal between 0 and 1, heparin microislands
     public static final double MAP_DIAMETER = 80 * (SCALE_FACTOR); //(microns)
     public static final double VESSEL_DIAMETER = 16 * (SCALE_FACTOR); //(microns)
     public static final double MAP_GAP =  18 * (SCALE_FACTOR); //(microns)
     public static final double TOTAL_VEGF_PRESENT = 1.0;
 
     // VESSELS
-    public static final int NUM_VESSELS = 12; // The number of head vessels to start the model
+    public static final int NUM_VESSELS_PER_SIDE = 12; // The number of head vessels to start the model per side
     public static final double VESSEL_VEGF_CONSUME = 0.0001; // the amount of VEGF consumed by eligible cells (body cells older than AGE_BEFORE_CONSUME
     public static final int  AGE_BEFORE_CONSUME = 25; // age (in ticks) before a body cell can start consuming VEGF: to keep consumption from interacting with head cell gradient calculation
     public static final double MIGRATION_RATE = 3 * SCALE_FACTOR/TIME_SCALE_FACTOR; // microns per hour
     public static final double VEGF_SENSITIVITY_THRESHOLD = 0.001; // Threshold for VEGF sensitivity
-    public static final double MAX_ELONGATION_LENGTH = 40 * (SCALE_FACTOR); // in mm
+    public static final double MAX_ELONGATION_LENGTH = 40 * (SCALE_FACTOR); // in microns
     public static final double MAX_PERSISTENCY_TIME = 3 * (TIME_SCALE_FACTOR);
     public static final double BRANCH_DELAY = 4 * (TIME_SCALE_FACTOR); // The minimum amount of ticks between ticks (model specific, included in Mehdizadeh et al.)
     // BRANCHING PROBABILITY AND THRESHOLDS_ PROBABILITIES NEED PARAMETERIZED BUT COULD STAY FIXED
@@ -44,14 +55,6 @@ public class grid3D extends AgentGrid3D<agent3D> {
     public final static double MED_BRANCHING_PROBABILITY= 0.55; // probability of branching while VEGF is between LOW_MED_VEGF_THRESHOLD and MED_HIGH_VEGF_THRESHOLD
     public final static double MED_HIGH_VEGF_THRESHOLD = 0.25;
     public final static double HIGH_BRANCHING_PROBABILITY= 0.9; // probability of branching while VEGF is above MED_HIGH_VEGF_THRESHOLD
-
-
-    // GRID PROPERTIES
-    public static final int x = (int)(.5 * (SCALE_FACTOR)*1000); // dimension of the wound in mm
-    public static final int y = (int)(.5 * (SCALE_FACTOR)*1000); // dimension of the wound in mm
-    public static final int z = (int)(.5 * (SCALE_FACTOR)*1000); // dimension of the wound in mm
-    public final static int RUNTIME = (int)(48 *TIME_SCALE_FACTOR); // how long will the simulation run?
-    Rand rng = new Rand();
 
     // DO NOT MODIFY
 
@@ -97,6 +100,9 @@ public class grid3D extends AgentGrid3D<agent3D> {
                 break; // exit the time tick loop
             }
         }
+        System.out.println(Arrays.toString(vessel_info(woundGrid)));
+        window.Close(); // close the wound grid window
+        VEGF_xz.Close(); // and close the PDE window
     }
 
     ///////////////
@@ -147,10 +153,28 @@ public class grid3D extends AgentGrid3D<agent3D> {
      * @param grid The wound grid that the vasculature is to be placed in
      */
     public static void Init_Vessels(grid3D grid){
+
+        // first side
         boolean empty = true;  // whether the location is occupied with MAP gel (assume is empty)
-        for (int i = 0; i < NUM_VESSELS;) {  // for as many vessels you want to start with  ("i" is tally for how many successful head vessels have been initialized)
+        for (int i = 0; i < NUM_VESSELS_PER_SIDE;) {  // for as many vessels you want to start with  ("i" is tally for how many successful head vessels have been initialized)
             empty = true; // assume that the desired location is empty
             double[] location = {(x/2.0)*grid.rng.Double()+(x/4.0), (y/2.0)*grid.rng.Double()+(y/4.0), 1.5*VESSEL_RADIUS}; // starts on the z=1.5*vessel_radius plane (i.e the beginning of the wound, but with some leeway)
+            for (agent3D agent : grid.IterAgentsRad(location[0], location[1], location[2], MAP_RAD+VESSEL_RADIUS)) { // Iterate through all locations around the desired point in a radius equal to MAP radius
+                if (agent.type == MAP_PARTICLE || agent.type == HEPARIN_ISLAND) { // If there is a MAP particle center in that radius (meaning that it overlaps with the desired location)
+                    empty = false; // the desired location is not empty
+                    break; // exit the for loop since you know that it is not empty
+                }
+            }
+            if (empty){ // BUT if it is empty, initialize a head vessel there and increment "i" which is a tally for how many vessels have been initialized
+                grid.NewAgentPT(location[0], location[1], location[2]).Init_HEAD_CELL();
+                i++;
+            }
+        }
+
+        // other side
+        for (int i = 0; i < NUM_VESSELS_PER_SIDE;) {  // for as many vessels you want to start with  ("i" is tally for how many successful head vessels have been initialized)
+            empty = true; // assume that the desired location is empty
+            double[] location = {(x/2.0)*grid.rng.Double()+(x/4.0), (y/2.0)*grid.rng.Double()+(y/4.0), z-(1.5*VESSEL_RADIUS)}; // starts on the z=1.5*vessel_radius plane (i.e the beginning of the wound, but with some leeway)
             for (agent3D agent : grid.IterAgentsRad(location[0], location[1], location[2], MAP_RAD+VESSEL_RADIUS)) { // Iterate through all locations around the desired point in a radius equal to MAP radius
                 if (agent.type == MAP_PARTICLE || agent.type == HEPARIN_ISLAND) { // If there is a MAP particle center in that radius (meaning that it overlaps with the desired location)
                     empty = false; // the desired location is not empty
@@ -182,8 +206,8 @@ public class grid3D extends AgentGrid3D<agent3D> {
      * Calls the VEGF grid to take action
      */
     public void StepVEGF(){
-        VEGF.DiffusionADI(0.1);
-    } // TODO: add as parameter (0.733 in 2D)(changed to ADI)
+        VEGF.DiffusionADI(DIFFUSION_COEFFICIENT);
+    }
 
     //////////////////
     // GRID DRAWING //
@@ -257,6 +281,33 @@ public class grid3D extends AgentGrid3D<agent3D> {
     // DATA EXPORT //
     /////////////////
 
-    // NOT YET IMPLEMENTED
+    public static double[] vessel_info(grid3D G){
+
+        // check their quadrants
+        int outerQuadrant = 0; // counter for agents in the outer half of the wound (0 to x/2 since x is wound center)
+        int innerQuadrant = 0; // counter for agents in the inner half of the wound (x/2 to x)
+        int numHeadCells = 0;
+
+        for (agent3D agent3D : G.IterAgentsRect(0, 0, 0, x, y, z)) {
+            if (agent3D.type == HEAD_CELL){
+                numHeadCells ++;
+            }
+            if ((agent3D.type == HEAD_CELL) || (agent3D.type == BODY_CELL)){
+                if (agent3D.Zpt() < z/2.0) {
+                    outerQuadrant++;
+                } else{
+                    innerQuadrant ++;
+                }
+            }
+        }
+        int totalAgents = outerQuadrant + innerQuadrant;
+
+        double ratioInner = innerQuadrant/(totalAgents*1.0);
+        double ratioOuter = outerQuadrant/(totalAgents*1.0);
+
+        double totalVesselLength = ((totalAgents*VESSEL_RADIUS) + (numHeadCells*VESSEL_RADIUS))/SCALE_FACTOR;
+
+        return new double[]{ratioOuter, ratioInner, totalVesselLength};
+    }
 
 }

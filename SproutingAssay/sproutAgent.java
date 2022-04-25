@@ -27,7 +27,6 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
 
     // take all parameters for the sproutGrid class.
     public static double VESSEL_VEGF_INTAKE = sproutGrid.VESSEL_VEGF_INTAKE;
-    public final static int VESSEL_GROWTH_DELAY = sproutGrid.VESSEL_GROWTH_DELAY;
     public final static double VEGF_SENSITIVITY = sproutGrid.VEGF_SENSITIVITY;
     public final static int MAX_ELONGATION_LENGTH = sproutGrid.MAX_ELONGATION_LENGTH;
     public final static double PERSISTENCY_TIME = sproutGrid.PERSISTENCY_TIME;
@@ -52,8 +51,6 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
     int elongation_length;  // threshold length which determines when an endothelial cell must find a new direction to migrate (based on highest VEGF concentration)
     int ticks_since_direction_change;  // // Works to realize a "persistency time".  A cell must persist in 1 direction for X time, determined by PERSISTENCY_TIME.  This stores the time since the cell's last redirection.
     int since_last_branch; // endothelial cells may branch to more frequently than BRANCH_DELAY_TIME.  This stores how long it has been since the vessel's last branch.
-    public static boolean start_vessel_growth = false; // vessels will not elongate unless start_vessel_growth is true.  It is set to true after VESSEL_GROWTH_DELAY has passed.
-//    boolean heparin_particle_release_VEGF = true;
 
 
     /**
@@ -207,17 +204,6 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
     }
 
     /**
-     * Determines whether the endothelial cells should begin dividing, according to VESSEL_GROWTH_DELAY
-     */
-    public void CheckStartVesselGrowth() {
-        assert G != null;
-        if (G.GetTick() >= VESSEL_GROWTH_DELAY && !start_vessel_growth) { // If the VESSEL_GROWTH_DELAY has passed and start_vessel_growth is false, then,
-            start_vessel_growth = true; //  vessels can begin to grow
-//            System.out.println(G.GetTick());  // can be used to check what tick the vessels begin to grow (keep in mind that these are ticks, and not hours)
-        }
-    }
-
-    /**
      * Replicates media exchange, simulating HEP_MAP sequestering and release of VEGF provided by fresh media, exchanged
      * as specificed by MEDIA_EXCHANGE_SCHEDULE
      */
@@ -266,54 +252,52 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
             return;
         }
 
-        if (start_vessel_growth) { // if VESSEL_GROWTH_DELAY has passed
 
-            int cellDivLocation; // (stores the the location where the cell will grow to)
+        int cellDivLocation; // (stores the the location where the cell will grow to)
 
-            // if persistency time has been reached, and the elongation length has been reached, then find a new direction to migrate.
-            if ((( ticks_since_direction_change >= PERSISTENCY_TIME) && (elongation_length >= MAX_ELONGATION_LENGTH)) || (target == 0)){
-                int highestConcentrationCoord = HighestConcentrationVEGF(); // find new target location: the location in the sight radius with the highest VEGF
-                highestConcentrationCoord = CalculateTargetScaleTargetCoord(highestConcentrationCoord); // find a point in the same direction, but very far away, so you won't reach it: want to persist in that direction
-                cellDivLocation = HoodClosestToTarget(highestConcentrationCoord); // and find the closest adjacent coordinate in the direction towards the highestConcentrationCoord
-                if ((highestConcentrationCoord > 0) && (cellDivLocation > 0) && (G.PopAt(cellDivLocation) == 0)){ // If there is a location of highest concentration and there is an open adjacent spot... (the values will be 0 if none were found)
-                    if (!(G.VEGF.Get(Isq()) + REQUIRED_VEGF_GRADIENT_DIFFERENCE <= G.VEGF.Get(cellDivLocation))){ // check if there is enough difference in VEGF between current location and target growth spot, (if not, then end)
-                        return;
-                    }
-                    G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, highestConcentrationCoord, since_last_growth, 0, 1, since_last_branch); // make a new head cell at cellDivLocation (vessel elongates)
-                    InitVessel(BODY_CELL, this.length); // and make the old cell a body cell
+        // if persistency time has been reached, and the elongation length has been reached, then find a new direction to migrate.
+        if ((( ticks_since_direction_change >= PERSISTENCY_TIME) && (elongation_length >= MAX_ELONGATION_LENGTH)) || (target == 0)){
+            int highestConcentrationCoord = HighestConcentrationVEGF(); // find new target location: the location in the sight radius with the highest VEGF
+            highestConcentrationCoord = CalculateTargetScaleTargetCoord(highestConcentrationCoord); // find a point in the same direction, but very far away, so you won't reach it: want to persist in that direction
+            cellDivLocation = HoodClosestToTarget(highestConcentrationCoord); // and find the closest adjacent coordinate in the direction towards the highestConcentrationCoord
+            if ((highestConcentrationCoord > 0) && (cellDivLocation > 0) && (G.PopAt(cellDivLocation) == 0)){ // If there is a location of highest concentration and there is an open adjacent spot... (the values will be 0 if none were found)
+                if (!(G.VEGF.Get(Isq()) + REQUIRED_VEGF_GRADIENT_DIFFERENCE <= G.VEGF.Get(cellDivLocation))){ // check if there is enough difference in VEGF between current location and target growth spot, (if not, then end)
+                    return;
                 }
+                G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, highestConcentrationCoord, since_last_growth, 0, 1, since_last_branch); // make a new head cell at cellDivLocation (vessel elongates)
+                InitVessel(BODY_CELL, this.length); // and make the old cell a body cell
+            }
 
-                // branching
-                if(G.rng.Double() < branching_probability && since_last_branch > BRANCH_DELAY_TIME){ // if the cell happens to branch (branching probability is a parameter of the cell, and is modified by a function CalculateBranchingProbability)
-                    // find the options for branching locations around the cell
-                    int options = MapEmptyHood(G.divHood);
-                    if (options >= 1) { // if there is an open nearby location, then branch there
-                        cellDivLocation = G.divHood[G.rng.Int(options)]; // choose a random empty location
-                        if (G.PopAt(cellDivLocation) == 0){  // if there are no agents at that location
-                            if (!(G.VEGF.Get(Isq()) + REQUIRED_VEGF_GRADIENT_DIFFERENCE <= G.VEGF.Get(cellDivLocation))){ // if there is not a large enough difference of VEGF between the current location and the branching location, then do not branch. Otherwise,
-                                return;
-                            }
-                            G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, 0, 0, this.ticks_since_direction_change =0, 1, 0); // make a new head cell at the branching location
-                            InitVessel(BODY_CELL, this.length); // make the old cell a body cell
+            // branching
+            if(G.rng.Double() < branching_probability && since_last_branch > BRANCH_DELAY_TIME){ // if the cell happens to branch (branching probability is a parameter of the cell, and is modified by a function CalculateBranchingProbability)
+                // find the options for branching locations around the cell
+                int options = MapEmptyHood(G.divHood);
+                if (options >= 1) { // if there is an open nearby location, then branch there
+                    cellDivLocation = G.divHood[G.rng.Int(options)]; // choose a random empty location
+                    if (G.PopAt(cellDivLocation) == 0){  // if there are no agents at that location
+                        if (!(G.VEGF.Get(Isq()) + REQUIRED_VEGF_GRADIENT_DIFFERENCE <= G.VEGF.Get(cellDivLocation))){ // if there is not a large enough difference of VEGF between the current location and the branching location, then do not branch. Otherwise,
+                            return;
                         }
+                        G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, 0, 0, this.ticks_since_direction_change =0, 1, 0); // make a new head cell at the branching location
+                        InitVessel(BODY_CELL, this.length); // make the old cell a body cell
                     }
                 }
-            } else if (elongation_length < MAX_ELONGATION_LENGTH){ // if the cell has not yet reached it's max elongation length, then continue to elongate
-                cellDivLocation = HoodClosestToTarget(target); // find an open adjacent location closest to the target
-                if (G.PopAt(cellDivLocation) == 0) {  // double check that there are no other agents at that location
-                    if (!(G.VEGF.Get(Isq()) + REQUIRED_VEGF_GRADIENT_DIFFERENCE <= G.VEGF.Get(cellDivLocation))){  // if the VEGF concentration difference between the current location and the elongation location is insufficient, then stop.  Else,
-                        return;
-                    }
-                    G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, target, since_last_growth, ticks_since_direction_change, elongation_length + 1, since_last_branch); // make a new cell there
-                    InitVessel(BODY_CELL, this.length); // make the old cell a body cell
+            }
+        } else if (elongation_length < MAX_ELONGATION_LENGTH){ // if the cell has not yet reached it's max elongation length, then continue to elongate
+            cellDivLocation = HoodClosestToTarget(target); // find an open adjacent location closest to the target
+            if (G.PopAt(cellDivLocation) == 0) {  // double check that there are no other agents at that location
+                if (!(G.VEGF.Get(Isq()) + REQUIRED_VEGF_GRADIENT_DIFFERENCE <= G.VEGF.Get(cellDivLocation))){  // if the VEGF concentration difference between the current location and the elongation location is insufficient, then stop.  Else,
+                    return;
                 }
+                G.NewAgentSQ(cellDivLocation).InitVesselMigrationRate(HEAD_CELL, this.length + 1, target, since_last_growth, ticks_since_direction_change, elongation_length + 1, since_last_branch); // make a new cell there
+                InitVessel(BODY_CELL, this.length); // make the old cell a body cell
             }
         }
     }
 
     /**
      * This function takes in a target coordinate of a cell and views it in relation with that cell.  It then treats it
-     * a vector, and scales the coordinate such that it is 10 times further, but still in the same direction
+     * a vector, and scales the coordinate such that it is multiple times further, but still in the same direction
      * in relation to the cell.
      * @param targetCoord  the original coordinate target of a cell
      * @return a coordinate in the same direction, but scaled to be a larger distance than the original target.
@@ -380,9 +364,6 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
 
         // calculate branching probability
         CalculateBranchingProbability();
-
-        // check if endothelial cells will divide yet
-        CheckStartVesselGrowth();
 
         // Elongate
         VesselGrowthByRate();

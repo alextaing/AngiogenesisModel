@@ -72,7 +72,6 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public final static int SCALE_FACTOR = 2; // for visualization: changes the scale of the pixels
     public final static int TICK_PAUSE = 1; // for model runtime: changes the amount of time between each tick
     public final static int RUNTIME_HOURS = 24; // the timeframe that the simulation models (HOURS)
-    public final static double VESSEL_GROWTH_DELAY_HOURS = 2; // the delay between model start and vessel growth
 
     // DIFFUSION - NEEDS PARAMETERIZED
     public final static double DIFFUSION_COEFFICIENT = 0.733; // diffusion coefficient
@@ -104,7 +103,6 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
 
     // runtime
     public final static int TIMESTEPS = RUNTIME_HOURS*TICKS_PER_HOUR;
-    public final static int VESSEL_GROWTH_DELAY = (int)(VESSEL_GROWTH_DELAY_HOURS*TICKS_PER_HOUR);
     public final static int FOLD_CHANGE_SAMPLE_TICKS = (int)(FOLD_CHANGE_SAMPLE_TIME*TICKS_PER_HOUR); // take a sample every ____ ticks
 
 
@@ -324,9 +322,6 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
         //vegf sensitivity
         CSV.append(VEGF_SENSITIVITY).append(",");
 
-        //vessel growth delay
-        CSV.append(VESSEL_GROWTH_DELAY_HOURS).append(",");
-
         //initial percent head cells
         CSV.append(INITIAL_PERCENT_HEAD_CELLS).append(",");
 
@@ -454,7 +449,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
      * Initializes the headings for the CSV file.
      */
     public void Initialize_CSV(){
-        CSV.append("Heparin Percentage (%), Total Vessel Length (microns), Fold Change (%), VEGF sensitivity, Diffusion Coefficient, VEGF Sensitivity, Vessel Growth Delay, Initial percent head cells, VEGF intake, hours, vegfdegradation, low-med thres, med-high thres, vegf loaded, media exchange");
+        CSV.append("Heparin Percentage (%), Total Vessel Length (microns), Fold Change (%), VEGF sensitivity, Diffusion Coefficient, VEGF Sensitivity, Initial percent head cells, VEGF intake, hours, vegfdegradation, low-med thres, med-high thres, vegf loaded, media exchange");
     }
 
 
@@ -534,7 +529,6 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
                     model.VEGF = new PDEGrid2D(x, y); // initialize the diffusion grid
                     model.initVesselsCircleCulture(model); // initialize spheroid
                     model.initMAPParticles(model, heparinPercentage); // initialize MAP particles
-                    sproutAgent.start_vessel_growth = false;
 
                     model.initialCultureSize= model.countVessels(); // keep track of the initial vessel count of spheroid (used in calculating fold change)
                     for (int i = 0; i < TIMESTEPS; i++){ // while the model runs (for each tick...)

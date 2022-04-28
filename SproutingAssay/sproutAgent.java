@@ -1,7 +1,8 @@
 /*
 GRIFFIN LAB
-ALEX TAING, UNDERGRADUATE
-FALL 2020
+LAUREN PRUETT, ALEX TAING
+UNIVERSITY OF VIRGINIA
+2D Hybrid Model Sprouting Angiogenesis Publication 2022
 */
 
 package SproutingAssay;
@@ -41,7 +42,7 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
     public final static double HIGH_BRANCHING_PROBABILITY= sproutGrid.HIGH_BRANCHING_PROBABILITY;
     public final static double REQUIRED_VEGF_GRADIENT_DIFFERENCE = sproutGrid.REQUIRED_VEGF_GRADIENT_DIFFERENCE;
 
-    int color;  // color of cell in visulaization
+    int color;  // color of cell in visualization
     int type;  // cell type (HEAD, BODY, MAP_PARTICLE, HEPARIN_MAP)
     int length = 0;  // length of the vessel (since starting location)
     int target; // simulates elongation direction:  cells will pursue a target coordinate in the direction of the highest VEGF concentration
@@ -196,7 +197,7 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
     public void ConsumeVEGF() {
         assert G != null;
         if ((G.VEGF.Get(Isq()) >= 0) && ((type == HEAD_CELL) || (type == BODY_CELL))) { // Head cells and body cells consume VEGF
-            G.VEGF.Add(Isq(), -VESSEL_VEGF_INTAKE);
+            G.VEGF.Add(Isq(), -VESSEL_VEGF_INTAKE); //Endothelial cell internalizes VEGF
             if (G.VEGF.Get(Isq()) < 0){ // if the VEGF concentration is less than 0,
                 G.VEGF.Set(Isq(), 0); // then set it to zero.
             }
@@ -341,9 +342,8 @@ public class sproutAgent extends AgentSQ2D<sproutGrid> {
      */
     public void VEGFDegrade() {
         assert G != null;
-        if (G.VEGF.Get(Isq()) >= 0 && G.GetTick()%90 == 0)  { // VEGF degrades every 90 ticks
+        if (G.VEGF.Get(Isq()) >= 0 && G.GetTick()%90 == 0)  { // VEGF degrades every 90 ticks consistent with half life of 90 min
             G.VEGF.Add(Isq(), -(G.VEGF.Get(Isq()))* VEGF_DEGRADATION_RATE);
-            //G.VEGF.Add(Isq(), - VEGF_DEGRADATION_RATE);
             if (G.VEGF.Get(Isq()) < 0){
                 G.VEGF.Set(Isq(), 0);
             }

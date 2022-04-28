@@ -1,7 +1,8 @@
 /*
 GRIFFIN LAB
-ALEX TAING, UNDERGRADUATE
-FALL 2020
+LAUREN PRUETT, ALEX TAING
+UNIVERSITY OF VIRGINIA
+2D Sprouting Angiogenesis ABM - Publication 2022
 */
 
 package SproutingAssay;
@@ -33,10 +34,10 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public final static boolean EXPORT_DATA = true;
     public final static boolean EXPORT_TIME_DATA = true; // (note that EXPORT_DATA must also be true as well to export time data)
     public final static boolean EXPORT_HEAD_CELL_DISTANCE_DATA = true; // (note that EXPORT_DATA must also be true as well to export distance data)
-    public final static int TRIALS = 500;  // number of trials (only for BATCH RUNS)
-    public final static double[] HEPARIN_PERCENTAGES = {0.28};  // percent HEPARIN ISLANDS that will be inilialized in the scaffold
+    public final static int TRIALS = 100;  // number of trials (only for BATCH RUNS)
+    public final static double[] HEPARIN_PERCENTAGES = {0.1};  // percent HEPARIN ISLANDS that will be inilialized in the scaffold
     public final static double FOLD_CHANGE_SAMPLE_TIME = 0.25 ; // sampling interval for fold change data export (HOURS)
-    //public final static double[] DIFFUSION_COEFFICIENT = new double[]{0.01, 0.04, 0.07, 0.10, 0.13};
+
 
     // VESSEL PARAMETERS FIXED!
     public static final int CULTURE_RADIUS_MICRONS = 140; // radius of the initial assay spheroid (MICRONS)
@@ -46,25 +47,25 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public final static int MIGRATION_RATE_MICRONS_PER_HOUR = 30; // rate of elongation for EC head cells (MICRONS/HOUR)
     public final static double BRANCH_DELAY_TIME_HOURS = 6; // required delay time between EC branching in (HOURS)
 
-    // VESSEL PARAMETERS NEEDING PARAMETERIZED AND SENSITIVITY ANALYSIS
-    public final static double VEGF_SENSITIVITY = 0.03; // minimal VEGF required to be sensed by EC (0.03 baseline minimum VEGF to attract cell growth)
-    public static double VESSEL_VEGF_INTAKE = 0.001; // percent of how much of the current VEGF is consumed when a blood vessel is present in a cell
+    // VESSEL PARAMETERS FOR SENSITIVITY ANALYSIS
+    public final static double VEGF_SENSITIVITY = 0.025; // minimal VEGF required to be sensed by EC (0.03 baseline minimum VEGF to attract cell growth) (RELATIVE UNITS)
+    public static double VESSEL_VEGF_INTAKE = 0.001; // amount of the current VEGF that is consumed when a blood vessel is present in a grid cell (RELATIVE UNITS)
+    public final static double VEGF_DEGRADATION_RATE = 0.5; // Fraction of VEGF that is degraded every 90 minutes in accordance with VEGFs half life
+    public final static double REQUIRED_VEGF_GRADIENT_DIFFERENCE = 0.005; // Difference of VEGF concentration required between a HEAD cell's location and its next division location in order to elongate (RELLATIVE UNITS)
+
+    // BRANCHING PROBABILITY AND THRESHOLDS_ PROBABILITIES
     public final static double INITIAL_PERCENT_HEAD_CELLS = 0.07; // probability during spheroid initiation that any edge cell of the spheroid will be of type HEAD
-    public final static double VEGF_DEGRADATION_RATE = 0.5; // rate at which VEGF degrades
-    public final static double REQUIRED_VEGF_GRADIENT_DIFFERENCE = 0.005; // Difference of VEGF concentration required between a HEAD cell's location and its next division location in order to elongate
-    // BRANCHING PROBABILITY AND THRESHOLDS_ PROBABILITIES NEED PARAMETERIZED BUT COULD STAY FIXED
     public final static double LOW_BRANCHING_PROBABILITY= 0.4; // probability of branching while VEGF is under LOW_MED_VEGF_THRESHOLD
-    public final static double LOW_MED_VEGF_THRESHOLD = 0.05;  // the threshold between LOW and MED branching probability
+    public final static double LOW_MED_VEGF_THRESHOLD = 0.05;  // the threshold between LOW and MED branching probability (RELATIVE UNITS)
     public final static double MED_BRANCHING_PROBABILITY= 0.55; // probability of branching while VEGF is between LOW_MED_VEGF_THRESHOLD and MED_HIGH_VEGF_THRESHOLD
-    public final static double MED_HIGH_VEGF_THRESHOLD = 0.25; // the threshold between MED and HIGH branching probability
+    public final static double MED_HIGH_VEGF_THRESHOLD = 0.25; // the threshold between MED and HIGH branching probability (RELATIVE UNITS)
     public final static double HIGH_BRANCHING_PROBABILITY= 0.9; // probability of branching while VEGF is above MED_HIGH_VEGF_THRESHOLD
 
     // MAP GEL PARAMETERS - FIXED
     public final static int MAP_RADIUS_MICRONS = 40; // radius of MAP particles (MICRONS)
     public final static double MAP_SPACING_MICRONS = 15; // minimum space between the edges of two MAP particles (MICRONS)
-    public final static double HEP_MAP_VEGF_RELEASE = 1; // amount of VEGF added per media exchange
-    public final static double MEDIA_EXCHANGE_SCHEDULE_HOURS = 0.3571; // exchange media to refresh VEGF every __ hours
-    //public final static double HEPARIN_PERCENTAGES = 0.1; // percentage of heparin particles
+    public final static double HEP_MAP_VEGF_RELEASE = 1; // amount of VEGF added per media exchange (RELATIVE UNITS) (NOTE: This is based on percentage of hep particles - HEP% * HEP_MAP_VEGF_RELEASE = 0.1)
+    public final static double MEDIA_EXCHANGE_SCHEDULE_HOURS = 1; // exchange media to refresh VEGF every X hours
 
     // MAIN METHOD PARAMETERS - FIXED
     public final static int x_MICRONS = 4000; // x dimension of the wound-space (MICRONS)
@@ -73,18 +74,18 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public final static int TICK_PAUSE = 1; // for model runtime: changes the amount of time between each tick
     public final static int RUNTIME_HOURS = 24; // the timeframe that the simulation models (HOURS)
 
-    // DIFFUSION - NEEDS PARAMETERIZED
-    public final static double DIFFUSION_COEFFICIENT = 0.733; // diffusion coefficient
+    // DIFFUSION
+    public final static double DIFFUSION_COEFFICIENT = 0.733; // diffusion coefficient (UNITLESS)
 
 
 
 /////////////////////////////////////////////      CONVERSIONS      ////////////////////////////////////////////////////
 
-    // FACTORS
+    // SCALING FACTORS
     public final static int MICRONS_PER_PIXEL = 10; // 1 pixel represents 10 microns
     public final static int TICKS_PER_HOUR = 60; // 1 tick represents 1 minute
 
-    // vessels
+    // vessel unit conversions
     public static final int CULTURE_RADIUS = CULTURE_RADIUS_MICRONS/ MICRONS_PER_PIXEL;
     public final static int SIGHT_RADIUS = SIGHT_RADIUS_MICRONS/ MICRONS_PER_PIXEL;
     public static final int MAX_ELONGATION_LENGTH = MAX_ELONGATION_LENGTH_MICRONS/ MICRONS_PER_PIXEL;
@@ -92,7 +93,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     public final static double PERSISTENCY_TIME = PERSISTENCY_TIME_HOURS * TICKS_PER_HOUR;
     public final static int BRANCH_DELAY_TIME = (int)(BRANCH_DELAY_TIME_HOURS * TICKS_PER_HOUR);
 
-    // particles
+    // particle unit conversions
     public final static int MAP_RADIUS = MAP_RADIUS_MICRONS/ MICRONS_PER_PIXEL;
     public final static double MAP_SPACING = (double)(MAP_RADIUS_MICRONS)/ MICRONS_PER_PIXEL + MAP_SPACING_MICRONS/ MICRONS_PER_PIXEL;
     public final static double MEDIA_EXCHANGE_SCHEDULE_TICKS = MEDIA_EXCHANGE_SCHEDULE_HOURS*TICKS_PER_HOUR;
@@ -166,7 +167,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
             endoCell.StepCell();
         }
         IncTick();
-        VEGF.DiffusionADI(DIFFUSION_COEFFICIENT);
+        VEGF.DiffusionADI(DIFFUSION_COEFFICIENT); //Alternating Direction Implicit Method Diffusion
         VEGF.Update();
     }
 
@@ -313,7 +314,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
         // Head cell data
         ArrayList<Double> headCellDistances = FinalHeadCellDistance();
 
-        //Changing coefficient
+        //grid size
         CSV.append(x_MICRONS).append(",");
 
         // diffusion coefficient

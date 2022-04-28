@@ -21,6 +21,7 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
     boolean noOverlap = false; // determines if a body cell is overlapping with a MAP particle or not: if so it should move to not overlap (implementation not functioning, still in debugging process)
     double branching_probability;
     double[] lastPlace; // last place that a body cell was placed
+    String side = "";
 
     // Heparin MicroIslands (for making surface gradients)
     private int[] zero_VEGF; // Neighborhood inside the heparin island that should not have any gradient
@@ -109,7 +110,7 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
     /**
      * Initializes head cell
      */
-    public void Init_HEAD_CELL(){
+    public void Init_HEAD_CELL(String side){
         this.type = HEAD_CELL;
         this.color = HEAD_CELL_COLOR;
         this.radius = VESSEL_RADIUS;
@@ -117,6 +118,7 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
         this.persistency_time = -1;
         this.timeSinceLastBranch = 0;
         this.lastPlace = new double[]{Xpt(), Ypt(), Zpt()};
+        this.side = side;
     }
 
     /**
@@ -223,10 +225,25 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
 
     /**
      * called on every agent by the grid class, specifying commands for each cell, depending on its type
-     * @param divProb the probability of division (not necessary?)
      */
-    public void StepCell(double divProb) {
+    public void StepCell() {
         assert G != null;
+
+        if (this.side.equals("L")){
+            if (Zpt() >= G.zDim/2.0 && grid3D.CenterArrivalTime == -1){
+                grid3D.CenterArrivalTime = G.GetTick()/grid3D.TIME_SCALE_FACTOR;
+            }
+            if (Zpt() >= G.zDim/4.0 && grid3D.QuarterArrivalTime == -1){
+                grid3D.QuarterArrivalTime = G.GetTick()/grid3D.TIME_SCALE_FACTOR;
+            }
+        } else if (this.side.equals("R")){
+            if (Zpt() <= G.zDim/2.0 && grid3D.CenterArrivalTime == -1){
+                grid3D.CenterArrivalTime = G.GetTick()/grid3D.TIME_SCALE_FACTOR;
+            }
+            if (Zpt() <= (G.zDim*3)/4.0 && grid3D.QuarterArrivalTime == -1){
+                grid3D.QuarterArrivalTime = G.GetTick()/grid3D.TIME_SCALE_FACTOR;
+            }
+        }
 
         // HEAD CELLS
         if(type == HEAD_CELL) { // if type head cell
@@ -252,7 +269,7 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
                     if (G.rng.Double() < branching_probability) { // and if branch probability is satisfied
                         double[] location = {Xpt() - 0.02, Ypt() - 0.02, Zpt() - 0.02};
                         if (G.In(location[0], location[1], location[2])) {
-                            G.NewAgentPT(location[0], location[1], location[2]).Init_HEAD_CELL(); // create another head cell VERY CLOSE to the old one
+                            G.NewAgentPT(location[0], location[1], location[2]).Init_HEAD_CELL(this.side); // create another head cell VERY CLOSE to the old one
                             timeSinceLastBranch = 0;
                         }
                     }

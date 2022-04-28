@@ -8,6 +8,11 @@ import HAL.Interfaces.DoubleToInt;
 import HAL.Rand;
 import HAL.Util;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.sql.Timestamp;
 import java.util.Arrays;
 
 public class grid3D extends AgentGrid3D<agent3D> {
@@ -16,8 +21,12 @@ public class grid3D extends AgentGrid3D<agent3D> {
     // PARAMETERS //
     ////////////////
 
+
+    // DATA EXPORT
+    public static final boolean EXPORT_DATA = true;
+
     // SCALE FACTORS
-    public static final double SCALE_FACTOR = 0.1; // mm to units
+    public static final double SCALE_FACTOR = 0.1; // microns to units
     public static final double TIME_SCALE_FACTOR = 10; // hours to ticks (normally 60?)
 
     // GRID PROPERTIES
@@ -68,11 +77,16 @@ public class grid3D extends AgentGrid3D<agent3D> {
     public static final double MAP_GAP_CENTERS = (MAP_GAP + (2 * MAP_RAD));
     public static final double VESSEL_RADIUS = VESSEL_DIAMETER/2.0;
 
+    // DATA EXPORT
+    public static StringBuilder CSV = new StringBuilder();
+    public static double CenterArrivalTime = -1;
+    public static double QuarterArrivalTime = -1;
+
     /////////////////
     // MAIN METHOD //
     /////////////////
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException{
 
         // INITIALIZE WINDOWS
         OpenGL3DWindow window = new OpenGL3DWindow("Angiogenesis", 900, 900, x, y, z);
@@ -83,10 +97,14 @@ public class grid3D extends AgentGrid3D<agent3D> {
         Init_MAP_Particles(woundGrid);
         Init_Vessels(woundGrid);
 
+        // INITIALIZE CSV
+        Initialize_CSV();
+
+
         // TICK ACTIONS
         for (int step = 0; step < RUNTIME; step++) {  // For each timestep
             woundGrid.StepVEGF(); // Step the gradient
-            woundGrid.StepCells(0.5); // Step all the cells
+            woundGrid.StepCells(); // Step all the cells
             woundGrid.DrawGrid(window); // Draw the updated window
             woundGrid.DrawGradientWindowed(VEGF_xz, Util::HeatMapBGR); // Draw the updated PDE grid
             woundGrid.DrawAgents(window); // draw the new updated agents
@@ -101,7 +119,14 @@ public class grid3D extends AgentGrid3D<agent3D> {
                 break; // exit the time tick loop
             }
         }
-        System.out.println(Arrays.toString(vessel_info(woundGrid)));
+
+        // COLLECT DATA
+        CollectVesselData(woundGrid);
+
+        if (EXPORT_DATA){
+            ExportData();
+        }
+
         window.Close(); // close the wound grid window
         VEGF_xz.Close(); // and close the PDE window
     }
@@ -167,7 +192,7 @@ public class grid3D extends AgentGrid3D<agent3D> {
                 }
             }
             if (empty){ // BUT if it is empty, initialize a head vessel there and increment "i" which is a tally for how many vessels have been initialized
-                grid.NewAgentPT(location[0], location[1], location[2]).Init_HEAD_CELL();
+                grid.NewAgentPT(location[0], location[1], location[2]).Init_HEAD_CELL("L");
                 i++;
             }
         }
@@ -183,7 +208,7 @@ public class grid3D extends AgentGrid3D<agent3D> {
                 }
             }
             if (empty){ // BUT if it is empty, initialize a head vessel there and increment "i" which is a tally for how many vessels have been initialized
-                grid.NewAgentPT(location[0], location[1], location[2]).Init_HEAD_CELL();
+                grid.NewAgentPT(location[0], location[1], location[2]).Init_HEAD_CELL("R");
                 i++;
             }
         }
@@ -195,11 +220,10 @@ public class grid3D extends AgentGrid3D<agent3D> {
 
     /**
      * To be called on all cells inside the grid: calls StepCell on all cells
-     * @param divProb
      */
-    public void StepCells(double divProb) {
+    public void StepCells() {
         for (agent3D cell: this) { // for each of the cells in the grid
-            cell.StepCell(divProb); // call them to take action
+            cell.StepCell(); // call them to take action
         }
     }
 
@@ -282,7 +306,7 @@ public class grid3D extends AgentGrid3D<agent3D> {
     // DATA EXPORT //
     /////////////////
 
-    public static double[] vessel_info(grid3D G){
+    public static void CollectVesselData(grid3D G){
 
         // check their quadrants
         int outerQuadrant = 0; // counter for agents in the outer half of the wound (0 to x/2 since x is wound center)
@@ -305,10 +329,42 @@ public class grid3D extends AgentGrid3D<agent3D> {
 
         double ratioInner = innerQuadrant/(totalAgents*1.0);
         double ratioOuter = outerQuadrant/(totalAgents*1.0);
-
         double totalVesselLength = ((totalAgents*VESSEL_RADIUS) + (numHeadCells*VESSEL_RADIUS))/SCALE_FACTOR;
 
-        return new double[]{ratioOuter, ratioInner, totalVesselLength};
+        CSV.append("\n" + HEPARIN_ISLAND_PERCENTAGE + ", ").append(totalVesselLength).append(", ").append(ratioInner).append(", ").append(ratioOuter).append(", ").append(QuarterArrivalTime).append(", ").append(CenterArrivalTime);
+
+        // Reset Arrival Times
+        QuarterArrivalTime = -1;
+        CenterArrivalTime = -1;
+
     }
 
+
+    public static void Initialize_CSV(){
+        CSV.append("Heparin Percentage (%), Total BVL (microns), Inner Quadrant BV percentage, Outer Quadrant BV percentage, Quarter Arrival Time (h), Center Arrival Time (h)");
+    }
+
+
+    public static void ExportData() throws IOException {
+        Path fileName= Path.of("VesselModel3D\\Model3D_Data");
+        File Model3D_Datafile = new File(String.valueOf(fileName));
+        if (!Model3D_Datafile.exists()) {
+            if (!Model3D_Datafile.mkdir()) {
+                throw new IOException("Model3D_Data folder not made");
+            }
+        }
+
+        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+
+        String timestamp_string = ((timestamp.toString().replace(" ","_").replace(".", "-").replace(":", "-")).substring(0, 10) +" " + (HEPARIN_ISLAND_PERCENTAGE*100) + "%");
+        Path fileName3D= Path.of("VesselModel3D\\Model3D_Data\\" + timestamp_string + " 3DModel.csv");
+        int i = 1;
+        while (Files.exists(fileName3D)){
+            fileName3D= Path.of("VesselModel3D\\Model3D_Data\\" + timestamp_string + " (" + i + ")" + "3DModel.csv");
+            i++;
+        }
+        StringBuilder dataset = CSV;
+        Files.writeString(fileName3D, dataset);
+
+    }
 }

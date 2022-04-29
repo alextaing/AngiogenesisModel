@@ -1,7 +1,8 @@
 /*
 GRIFFIN LAB
-ALEX TAING, UNDERGRADUATE
-FALL 2020
+LAUREN PRUETT, ALEX TAING
+UNIVERSITY OF VIRGINIA
+2D Sprouting Angiogenesis ABM - Publication 2022
 */
 
 package SproutingAssay;
@@ -28,96 +29,96 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
 
 
     // BATCH RUNS
-    public final static boolean BATCH_RUN = true;
+    public final static boolean BATCH_RUN = true; // sets whether a single trial run is performed or a batch run.  Only BATCH RUNS use trials.
+                                                  // NOTE: if single trial run, will only run on the first percentage in HEPARIN_PERCENTAGES
     public final static boolean EXPORT_DATA = true;
     public final static boolean EXPORT_TIME_DATA = true; // (note that EXPORT_DATA must also be true as well to export time data)
     public final static boolean EXPORT_HEAD_CELL_DISTANCE_DATA = true; // (note that EXPORT_DATA must also be true as well to export distance data)
-    public final static int TRIALS = 500;
-    public final static double[] HEPARIN_PERCENTAGES = {0.28};
-    public final static double FOLD_CHANGE_SAMPLE_TIME = 0.25 ; // every ___ hours
-    //public final static double[] DIFFUSION_COEFFICIENT = new double[]{0.01, 0.04, 0.07, 0.10, 0.13};
+    public final static int TRIALS = 100;  // number of trials (only for BATCH RUNS)
+    public final static double[] HEPARIN_PERCENTAGES = {0.1};  // percent HEPARIN ISLANDS that will be inilialized in the scaffold
+    public final static double FOLD_CHANGE_SAMPLE_TIME = 0.25 ; // sampling interval for fold change data export (HOURS)
+
 
     // VESSEL PARAMETERS FIXED!
-    public static final int CULTURE_RADIUS_MICRONS = 140; // radius of the initial spheroid in microns
-    public final static int SIGHT_RADIUS_MICRONS = 20; // how far a EC can sense in microns
-    public final static double PERSISTENCY_TIME_HOURS = 3; // time between a EC changes direction in hours
-    public static final int MAX_ELONGATION_LENGTH_MICRONS = 40; // microns
-    public final static int MIGRATION_RATE_MICRONS_PER_HOUR = 30; // microns/hr
-    public final static double BRANCH_DELAY_TIME_HOURS = 6; // minimum time between branching (hours)
+    public static final int CULTURE_RADIUS_MICRONS = 140; // radius of the initial assay spheroid (MICRONS)
+    public final static int SIGHT_RADIUS_MICRONS = 20; // how far a EC can sense (MICRONS)
+    public final static double PERSISTENCY_TIME_HOURS = 3; // time between changes direction for EC migration (HOURS)
+    public static final int MAX_ELONGATION_LENGTH_MICRONS = 40; // max elongation length of a EC (MICRONS)
+    public final static int MIGRATION_RATE_MICRONS_PER_HOUR = 30; // rate of elongation for EC head cells (MICRONS/HOUR)
+    public final static double BRANCH_DELAY_TIME_HOURS = 6; // required delay time between EC branching in (HOURS)
 
-    // VESSEL PARAMETERS NEEDING PARAMETERIZED AND SENSITIVITY ANALYSIS
-    public final static double VEGF_SENSITIVITY = 0.03; // 0.03 baseline minimum VEGF to attract cell growth
-    public static double VESSEL_VEGF_INTAKE = 0.001; // percent of how much of the present VEGF is consumed when a blood vessel is nearby
-    public final static double INITIAL_PERCENT_HEAD_CELLS = 0.07; // probability of initializing an off branch from wound site
-    public final static double VEGF_DEGRADATION_RATE = 0.5;//
-    public final static double REQUIRED_VEGF_GRADIENT_DIFFERENCE = 0.005; // Difference required between a location and the next division location in order to elongate
-    // BRANCHING PROBABILITY AND THRESHOLDS_ PROBABILITIES NEED PARAMETERIZED BUT COULD STAY FIXED
+    // VESSEL PARAMETERS FOR SENSITIVITY ANALYSIS
+    public final static double VEGF_SENSITIVITY = 0.025; // minimal VEGF required to be sensed by EC (0.03 baseline minimum VEGF to attract cell growth) (RELATIVE UNITS)
+    public static double VESSEL_VEGF_INTAKE = 0.001; // amount of the current VEGF that is consumed when a blood vessel is present in a grid cell (RELATIVE UNITS)
+    public final static double VEGF_DEGRADATION_RATE = 0.5; // Fraction of VEGF that is degraded every 90 minutes in accordance with VEGFs half life
+    public final static double REQUIRED_VEGF_GRADIENT_DIFFERENCE = 0.005; // Difference of VEGF concentration required between a HEAD cell's location and its next division location in order to elongate (RELLATIVE UNITS)
+
+    // BRANCHING PROBABILITY AND THRESHOLDS_ PROBABILITIES
+    public final static double INITIAL_PERCENT_HEAD_CELLS = 0.07; // probability during spheroid initiation that any edge cell of the spheroid will be of type HEAD
     public final static double LOW_BRANCHING_PROBABILITY= 0.4; // probability of branching while VEGF is under LOW_MED_VEGF_THRESHOLD
-    public final static double LOW_MED_VEGF_THRESHOLD = 0.05;
+    public final static double LOW_MED_VEGF_THRESHOLD = 0.05;  // the threshold between LOW and MED branching probability (RELATIVE UNITS)
     public final static double MED_BRANCHING_PROBABILITY= 0.55; // probability of branching while VEGF is between LOW_MED_VEGF_THRESHOLD and MED_HIGH_VEGF_THRESHOLD
-    public final static double MED_HIGH_VEGF_THRESHOLD = 0.25;
+    public final static double MED_HIGH_VEGF_THRESHOLD = 0.25; // the threshold between MED and HIGH branching probability (RELATIVE UNITS)
     public final static double HIGH_BRANCHING_PROBABILITY= 0.9; // probability of branching while VEGF is above MED_HIGH_VEGF_THRESHOLD
 
     // MAP GEL PARAMETERS - FIXED
-    public final static int MAP_RADIUS_MICRONS = 40; // microns
-    public final static double MAP_SPACING_MICRONS = 15; // microns
-    public final static double HEP_MAP_VEGF_RELEASE = 1; // how much VEGF to add per media exchange
-    public final static double MEDIA_EXCHANGE_SCHEDULE_HOURS = 0.3571; // exchange media to refresh VEGF every __ hours
-    //public final static double HEPARIN_PERCENTAGES = 0.1; // percentage of heparin particles
+    public final static int MAP_RADIUS_MICRONS = 40; // radius of MAP particles (MICRONS)
+    public final static double MAP_SPACING_MICRONS = 15; // minimum space between the edges of two MAP particles (MICRONS)
+    public final static double HEP_MAP_VEGF_RELEASE = 1; // amount of VEGF added per media exchange (RELATIVE UNITS) (NOTE: This is based on percentage of hep particles - HEP% * HEP_MAP_VEGF_RELEASE = 0.1)
+    public final static double MEDIA_EXCHANGE_SCHEDULE_HOURS = 1; // exchange media to refresh VEGF every X hours
 
     // MAIN METHOD PARAMETERS - FIXED
-    public final static int x_MICRONS = 4000; // microns
-    public final static int y_MICRONS = 4000; // microns
-    public final static int SCALE_FACTOR = 2;
-    public final static int TICK_PAUSE = 1;
-    public final static int RUNTIME_HOURS = 24; // how long will the simulation run?
-    public final static double VESSEL_GROWTH_DELAY_HOURS = 2;
+    public final static int x_MICRONS = 4000; // x dimension of the wound-space (MICRONS)
+    public final static int y_MICRONS = 4000; // y dimension of the wound-space (MICRONS)
+    public final static int SCALE_FACTOR = 2; // for visualization: changes the scale of the pixels
+    public final static int TICK_PAUSE = 1; // for model runtime: changes the amount of time between each tick
+    public final static int RUNTIME_HOURS = 24; // the timeframe that the simulation models (HOURS)
 
-    // DIFFUSION - NEEDS PARAMETERIZED
-    public final static double DIFFUSION_COEFFICIENT = 0.733; // diffusion coefficient
+    // DIFFUSION
+    public final static double DIFFUSION_COEFFICIENT = 0.733; // diffusion coefficient (UNITLESS)
 
 
 
 /////////////////////////////////////////////      CONVERSIONS      ////////////////////////////////////////////////////
 
-    // FACTORS
+    // SCALING FACTORS
     public final static int MICRONS_PER_PIXEL = 10; // 1 pixel represents 10 microns
     public final static int TICKS_PER_HOUR = 60; // 1 tick represents 1 minute
 
-    // vessels
+    // vessel unit conversions
     public static final int CULTURE_RADIUS = CULTURE_RADIUS_MICRONS/ MICRONS_PER_PIXEL;
-    public final static int SIGHT_RADIUS = SIGHT_RADIUS_MICRONS/ MICRONS_PER_PIXEL; // radius to detect VEGF
+    public final static int SIGHT_RADIUS = SIGHT_RADIUS_MICRONS/ MICRONS_PER_PIXEL;
     public static final int MAX_ELONGATION_LENGTH = MAX_ELONGATION_LENGTH_MICRONS/ MICRONS_PER_PIXEL;
     public final static double MIGRATION_RATE = 1/((MIGRATION_RATE_MICRONS_PER_HOUR/(double) MICRONS_PER_PIXEL)*(1/(double)TICKS_PER_HOUR)); // convert to "elongate every ___ ticks"
     public final static double PERSISTENCY_TIME = PERSISTENCY_TIME_HOURS * TICKS_PER_HOUR;
     public final static int BRANCH_DELAY_TIME = (int)(BRANCH_DELAY_TIME_HOURS * TICKS_PER_HOUR);
 
-    // particles
-    public final static int MAP_RADIUS = MAP_RADIUS_MICRONS/ MICRONS_PER_PIXEL; // radius of MAP particle
-    public final static double MAP_SPACING = (double)(MAP_RADIUS_MICRONS)/ MICRONS_PER_PIXEL + MAP_SPACING_MICRONS/ MICRONS_PER_PIXEL; // spacing radius between MAP gel centers
+    // particle unit conversions
+    public final static int MAP_RADIUS = MAP_RADIUS_MICRONS/ MICRONS_PER_PIXEL;
+    public final static double MAP_SPACING = (double)(MAP_RADIUS_MICRONS)/ MICRONS_PER_PIXEL + MAP_SPACING_MICRONS/ MICRONS_PER_PIXEL;
     public final static double MEDIA_EXCHANGE_SCHEDULE_TICKS = MEDIA_EXCHANGE_SCHEDULE_HOURS*TICKS_PER_HOUR;
 
     // grid
-    public final static int x = x_MICRONS/ MICRONS_PER_PIXEL; // microns
-    public final static int y = y_MICRONS/ MICRONS_PER_PIXEL; // microns
+    public final static int x = x_MICRONS/ MICRONS_PER_PIXEL;
+    public final static int y = y_MICRONS/ MICRONS_PER_PIXEL;
 
     // runtime
-    public final static int TIMESTEPS = RUNTIME_HOURS*TICKS_PER_HOUR; // how long will the simulation run?
-    public final static int VESSEL_GROWTH_DELAY = (int)(VESSEL_GROWTH_DELAY_HOURS*TICKS_PER_HOUR);
+    public final static int TIMESTEPS = RUNTIME_HOURS*TICKS_PER_HOUR;
     public final static int FOLD_CHANGE_SAMPLE_TICKS = (int)(FOLD_CHANGE_SAMPLE_TIME*TICKS_PER_HOUR); // take a sample every ____ ticks
 
 
 
 //////////////////////////////////////////////      MISC VARIABLES      ////////////////////////////////////////////////
 
-    public static int HEAD_CELL = sproutAgent.HEAD_CELL;
-    public static int BODY_CELL = sproutAgent.BODY_CELL;
+    public static int HEAD_CELL = sproutAgent.HEAD_CELL;  // Head cell type
+    public static int BODY_CELL = sproutAgent.BODY_CELL;  // Body cell type
 
     Rand rng = new Rand();
-    int[] divHood = Util.VonNeumannHood(false); // neighborhood for division
-    int[] VEGFHood = Util.CircleHood(false, SIGHT_RADIUS); // how far can you see VEGF
+    int[] divHood = Util.VonNeumannHood(false); // neighborhood for division: cells can only divide/elongate to adjacent cells (cardinal directions)
+    int[] VEGFHood = Util.CircleHood(false, SIGHT_RADIUS); // the range that cells can see VEGF concentrations (for chemotaxis)
     int[] MAP_rad = Util.CircleHood(true, MAP_RADIUS); // radius of MAP particles
-    int[] MAP_space = Util.CircleHood(true, MAP_SPACING); // "cushion" between MAP particles
+    int[] MAP_space = Util.CircleHood(true, MAP_SPACING); // "cushion" between MAP particles (dictates the the area around the center of a MAP particle of
+                                                                     // of radius equal to MAP_RADIUS + MAP_SPACING)
 
     PDEGrid2D VEGF; // Initialize PDE Grid
 
@@ -141,7 +142,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
 
 
     /**
-     * Heparin Grid constructor
+     * Heparin Grid constructor. The grid created will be the vessel where all agents will reside.
      * @param x x dimension of grid
      * @param y y dimension of grid
      */
@@ -152,23 +153,31 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
 
 
     /**
-     * Steps all cells
+     * Calls each cell to take actions by calling the StepCell() method of the sproutAgent class.
+     * The sproutAgent class will then dictate what actions each cell will take depending on cell
+     * type and its environment.
+     *
+     * The tick timer is incremented to advance the time.
+     *
+     * This function also calls the VEGF diffusion to iterate and update.  (without this, no diffusion
+     * would occur.)
      */
     public void StepCells(){ // steps all the cells
         for (sproutAgent endoCell : this) {
             endoCell.StepCell();
         }
         IncTick();
-        VEGF.DiffusionADI(DIFFUSION_COEFFICIENT);
+        VEGF.DiffusionADI(DIFFUSION_COEFFICIENT); //Alternating Direction Implicit Method Diffusion
         VEGF.Update();
     }
 
 
     /**
-     * Draws the PDE window
-     * @param windows the window to draw the PDE in
+     * Draws the PDE window.  This function provides purely visual functionality
+     * by visualizing PDE diffusion of VEGF
+     * @param windows the window that the visualization will be drawn in
      */
-    public void DrawPDE(GridWindow windows){ // draws the PDE window
+    public void DrawPDE(GridWindow windows){
         for (int i = 0; i < length; i++) {
             windows.SetPix(i,Util.HeatMapBGR(VEGF.Get(i)));
         }
@@ -176,10 +185,11 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
 
 
     /**
-     * Draws the cell model
-     * @param win the window to draw the cell model in
+     * Draws the cell model.  This function provides visual functionality
+     * by visualizing the agents (all cells and particles).
+     * @param win the window that the visualization will be drawn in
      */
-    public void DrawModel(GridWindow win){ // Draws the Agent model
+    public void DrawModel(GridWindow win){
         for (int i = 0; i < length; i++) {
             int color = Util.BLACK;
             if (GetAgent(i) != null) {
@@ -192,7 +202,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
 
 
     /**
-     * Replaces Dist function, which DOES NOT WORK with initVesselsCircleCulture
+     * Replaces native Dist function which DOES NOT WORK with initVesselsCircleCulture
      * @param x1 first x coord
      * @param y1 first y coord
      * @param x2 second x coord
@@ -206,27 +216,27 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
 
 
     /**
-     * Initializes the vessels at both side of the wound
-     * @param model the model to draw the vessels in
+     * Initializes the spheroid for the assay
+     * @param model the model to initialize the vessels in
      */
     public void initVesselsCircleCulture(sproutGrid model) {
 
-        int center = I((Xdim()/2), (Ydim()/2));
-        for (int i = 0; i < (model.Xdim()*model.Ydim()); i++) {
+        int center = I((Xdim()/2), (Ydim()/2));  // determines the center, where the spheroid will be placed
+        for (int i = 0; i < (model.Xdim()*model.Ydim()); i++) {  // iterates through all coordinates
             double dist = distance(ItoX(i), ItoY(i), ItoX(center), ItoY(center));
-            if (dist < (CULTURE_RADIUS)) {
-                if (dist > (CULTURE_RADIUS - 2)){
-                    if (Math.random() < INITIAL_PERCENT_HEAD_CELLS) { // may be head cells or body cells
+            if (dist < (CULTURE_RADIUS)) { // if the distance for a coordinate is within CULTURE_RADIUS of the center
+                if (dist > (CULTURE_RADIUS - 2)){  // and if the cell is on the edge of the spheroid, then
+                    if (Math.random() < INITIAL_PERCENT_HEAD_CELLS) {
                         model.NewAgentSQ(i).InitVessel(sproutAgent.HEAD_CELL, 0);
                     }
                 } else if (dist > (CULTURE_RADIUS-3)){
-                    if (Math.random() < INITIAL_PERCENT_HEAD_CELLS) { // may be head cells or body cells
+                    if (Math.random() < INITIAL_PERCENT_HEAD_CELLS) { // the cell may be initialized as type HEAD or BODY
                         model.NewAgentSQ(i).InitVessel(sproutAgent.HEAD_CELL, 0);
                     } else {
                         model.NewAgentSQ(i).InitVessel(sproutAgent.BODY_CELL, 0);
                     }
-                } else {
-                    model.NewAgentSQ(i).InitVessel(sproutAgent.BODY_CELL, 0);
+                } else { // else (if it is in within CULTURE_RADIUS but not on the edge), then
+                    model.NewAgentSQ(i).InitVessel(sproutAgent.BODY_CELL, 0); // the cell will be of type BODY
                 }
             }
         }
@@ -234,23 +244,23 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
 
 
     /**
-     * Initializes MAP particles as full sized MAP particles
-     * @param model model to draw the particles in
+     * Initializes MAP particles and Heparin microislands into the model in HCP pattern with
+     * proper spacing as dictated by MAP_space
+     * @param model model to initialize the particles in
      */
     public void initMAPParticles(sproutGrid model, double Heparin_Percent){
 
-        // Iterate through every coordinate in the grid
-        for (int i = 0; i < x*y; i++) {
+        for (int i = 0; i < x*y; i++) { // Iterate through every coordinate in the grid
             int cellType = sproutAgent.MAP_PARTICLE; // assume that it will be a MAP particle
             double chance = Math.random();
             if (chance < Heparin_Percent){ // if chosen probability dictates that it will he a heparin microIsland
                 cellType = sproutAgent.HEPARIN_MAP;// then its type will be changed to heparin microIsland
             }
 
-            int occlusions = MapOccupiedHood(MAP_space, i); // Check a radius around the chosen coordinate equal to the radius of the MAP particle with proper spacing
+            int occlusions = MapOccupiedHood(MAP_space, i); // for the coordinate selected, check for occlusions (other cells) in area of radius MAP_space around it
             int open = MapEmptyHood(MAP_rad, i);
             if (occlusions == 0) { // if there are no occlusions
-                for (int j = 0; j < open; j++){ // then make the MAP particle (or Heparin microIsland)
+                for (int j = 0; j < open; j++){ // then initialize the particle at that location (checking that all particles stay within the window)
                     if (0 < MAP_rad[j] && MAP_rad[j] < x*y){
                         model.NewAgentSQ(MAP_rad[j]).Init(cellType);
                     }
@@ -259,15 +269,20 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
         }
     }
 
-    
+
+    /**
+     * Counts the total number of pixels which have a vessel present
+     * (used in calculating fold change and total vessel length)
+     * @return the total number of pixels that are occupied by vessels
+     */
     public int countVessels() {
-        int vessel_unit_counter = 0; // total vessel length calculated by taking the number of vessel units and multiplying by conversion factor
-        for (int x_coord = 0; x_coord < x; x_coord++) {
+        int vessel_unit_counter = 0;
+        for (int x_coord = 0; x_coord < x; x_coord++) {  // iterates through all coordinates
             for (int y_coord = 0; y_coord < y; y_coord++) {
                 Iterable<sproutAgent> agents = IterAgents(x_coord, y_coord);
                 for (sproutAgent agent : agents) {
-                    if (agent.type == HEAD_CELL || agent.type == BODY_CELL){
-                        vessel_unit_counter ++;
+                    if (agent.type == HEAD_CELL || agent.type == BODY_CELL){ // if one of the coordinates is a vessel
+                        vessel_unit_counter ++; // tally and continue
                         break;
                     }
                 }
@@ -278,7 +293,8 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
     
     
     /**
-     * Collects the data for export
+     * Collects data stored in a static variable, CSV.
+     * ExportData uses this collected information to export to a CSV file.
      */
     public void CollectData(double heparinPercentage){
         // vessel cells, MAP Particle, and Heparin MAP Data
@@ -298,7 +314,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
         // Head cell data
         ArrayList<Double> headCellDistances = FinalHeadCellDistance();
 
-        //Changing coefficient
+        //grid size
         CSV.append(x_MICRONS).append(",");
 
         // diffusion coefficient
@@ -306,9 +322,6 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
 
         //vegf sensitivity
         CSV.append(VEGF_SENSITIVITY).append(",");
-
-        //vessel growth delay
-        CSV.append(VESSEL_GROWTH_DELAY_HOURS).append(",");
 
         //initial percent head cells
         CSV.append(INITIAL_PERCENT_HEAD_CELLS).append(",");
@@ -335,9 +348,7 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
         CSV.append(MEDIA_EXCHANGE_SCHEDULE_HOURS);
 
 
-
         // TIME DATA
-
         if (EXPORT_TIME_DATA){
             if (TIME_CSV.length() == 0){
                 TIME_CSV.append("Time (hours), ");
@@ -351,11 +362,9 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
                 TIME_CSV.append(TimeFoldChange).append(",");
             }
             TIME_CSV.append("\n");
-
         }
 
         // HEAD CELL DISTANCE DATA
-
         if (EXPORT_HEAD_CELL_DISTANCE_DATA){
             if (HEAD_CSV.length() == 0){
                 HEAD_CSV.append("Final Head Cell Distances (microns) ").append("\n");
@@ -365,11 +374,14 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
                 HEAD_CSV.append(distance).append(",");
             }
             HEAD_CSV.append("\n");
-
         }
-
     }
 
+
+    /**
+     * Calculates final head cell distances from the center of the wound.
+     * @return an array of distances of each head cell to the center of the model
+     */
     public ArrayList<Double> FinalHeadCellDistance(){
         // Head cell distances
         ArrayList<Double> head_cell_distances = new ArrayList<>();
@@ -392,8 +404,9 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
 
 
     /**
-     * Exports data to SproutingAssayData file: arrival time, endothelial cells coordinates, MAP and HepMAP coordinates
-     * @throws IOException error in data export
+     * Exports data to a file labeled with run and date information to directory "SproutingAssayData" located in the
+     * sprouting assay folder.
+     * @throws IOException if errors
      */
     public void ExportData() throws IOException {
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
@@ -433,12 +446,17 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
 
     }
 
-    
+    /**
+     * Initializes the headings for the CSV file.
+     */
     public void Initialize_CSV(){
-        CSV.append("Heparin Percentage (%), Total Vessel Length (microns), Fold Change (%), VEGF sensitivity, Diffusion Coefficient, VEGF Sensitivity, Vessel Growth Delay, Initial percent head cells, VEGF intake, hours, vegfdegradation, low-med thres, med-high thres, vegf loaded, media exchange");
+        CSV.append("Heparin Percentage (%), Total Vessel Length (microns), Fold Change (%), VEGF sensitivity, Diffusion Coefficient, VEGF Sensitivity, Initial percent head cells, VEGF intake, hours, vegfdegradation, low-med thres, med-high thres, vegf loaded, media exchange");
     }
 
 
+    /**
+     * Calculates and stores the fold change af intervals specified by FOLD_CHANGE_SAMPLE_TIME
+     */
     public void CalculateFoldChangeOverTime(){
         if (GetTick()%FOLD_CHANGE_SAMPLE_TICKS == 0){
             FCTime.add(((double)GetTick())/TICKS_PER_HOUR);
@@ -448,6 +466,9 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
         }
     }
 
+    /**
+     * Clears the foldChangeOverTime variable between model runs.
+     */
     public void ClearFoldChange() {
         this.foldChangeOverTime.clear();
     }
@@ -460,75 +481,75 @@ public class sproutGrid extends AgentGrid2D<sproutAgent> {
 
 
     public static void main(String[] args) throws IOException {
-        GridWindow gridWin = new GridWindow("Endothelial Cells",x, y, SCALE_FACTOR); // window for agents
-        GridWindow VEGFWin = new GridWindow("VEGF Diffusion", x, y, SCALE_FACTOR); // window for diffusion
+        GridWindow gridWin = new GridWindow("Endothelial Cells",x, y, SCALE_FACTOR); // instantiates window for agents
+        GridWindow VEGFWin = new GridWindow("VEGF Diffusion", x, y, SCALE_FACTOR); // instantiates window for diffusion
 
-        sproutGrid model = new sproutGrid(x, y); // initialize agent grid
+        sproutGrid model = new sproutGrid(x, y); // instantiates agent grid
 
-        Path fileName= Path.of("SproutingAssay\\SproutingAssayData");
+        Path fileName= Path.of("SproutingAssay\\SproutingAssayData");  // sets Data export location
         File SproutingAssayDatafile = new File(String.valueOf(fileName));
 
-        if (EXPORT_DATA && !SproutingAssayDatafile.exists()) {
+        if (EXPORT_DATA && !SproutingAssayDatafile.exists()) {  // create a data export file if necessary
             if (!SproutingAssayDatafile.mkdir()) {
                 throw new IOException("SproutingAssayData folder not made");
             }
         }
 
-        if (!BATCH_RUN){
+        if (!BATCH_RUN){ // if the run is not a batch run
             // Initialize
-            model.initVesselsCircleCulture(model);
-            model.initMAPParticles(model, HEPARIN_PERCENTAGES[0]);
+            model.initVesselsCircleCulture(model);  // initialize the spheroid
+            model.initMAPParticles(model, HEPARIN_PERCENTAGES[0]); // initialize the MAP particles around the spheroid
 
-            model.Initialize_CSV();
-            model.initialCultureSize= model.countVessels(); // used for the initial vessel count in fold change
-            for (int i = 0; i < TIMESTEPS; i++){
+            model.Initialize_CSV();  // initialize the CSV
+            model.initialCultureSize= model.countVessels(); // keep track of the initial vessel count of spheroid (used in calculating fold change)
+            for (int i = 0; i < TIMESTEPS; i++){ // while the model runs (for each tick)
                 // pause
                 gridWin.TickPause(TICK_PAUSE); // how fast the simulation runs
                 // model step
-                model.StepCells(); // step the cells
+                model.StepCells(); // prompt the cells to take action
 
                 // draw
                 model.DrawPDE(VEGFWin); // draw the PDE window
                 model.DrawModel(gridWin); // draw the agent window
-                model.CalculateFoldChangeOverTime();
+                model.CalculateFoldChangeOverTime(); // calculate fold change if necessary
             }
-            if (EXPORT_DATA){
-                model.CollectData(HEPARIN_PERCENTAGES[0]);
-                model.ExportData();
+            if (EXPORT_DATA){ // if data export is set to TRUE,
+                model.CollectData(HEPARIN_PERCENTAGES[0]); // then collect data
+                model.ExportData(); // and export it.
             }
 
-        } else {
-            model.Initialize_CSV();
+        } else {    // If this is a batch run,
+            model.Initialize_CSV(); // initialie the CSV
 
-            for (double heparinPercentage : HEPARIN_PERCENTAGES) { // For each percentage listen in HEPARIN_PERCENTAGES
-                for (int trial = 0; trial < TRIALS; trial++) { // perform the amount of trials specified in TRIALS
+            for (double heparinPercentage : HEPARIN_PERCENTAGES) { // For each percentage listed in HEPARIN_PERCENTAGES
+                for (int trial = 0; trial < TRIALS; trial++) { // perform the amount of trials specified in TRIALS (for each trial...)
                     // initialize
-                    model.Reset(); // reset the model
-                    model.ResetTick(); // reset the time tick
-                    model.ClearFoldChange();
+                    model.Reset(); // reset the model for the next trial
+                    model.ResetTick(); // reset the time tick for the next trial
+                    model.ClearFoldChange(); // reset the fold change variable for the next trial
                     model.VEGF = new PDEGrid2D(x, y); // initialize the diffusion grid
-                    model.initVesselsCircleCulture(model); // initialize vessels
+                    model.initVesselsCircleCulture(model); // initialize spheroid
                     model.initMAPParticles(model, heparinPercentage); // initialize MAP particles
 
-                    model.initialCultureSize= model.countVessels(); // used for the initial vessel count in fold change
-                    for (int i = 0; i < TIMESTEPS; i++){
+                    model.initialCultureSize= model.countVessels(); // keep track of the initial vessel count of spheroid (used in calculating fold change)
+                    for (int i = 0; i < TIMESTEPS; i++){ // while the model runs (for each tick...)
                         // pause
                         gridWin.TickPause(TICK_PAUSE); // how fast the simulation runs
                         // model step
-                        model.StepCells(); // step the cells
+                        model.StepCells(); // prompt the cells to take action
 
                         // draw
                         model.DrawPDE(VEGFWin); // draw the PDE window
                         model.DrawModel(gridWin); // draw the agent window
-                        model.CalculateFoldChangeOverTime();
+                        model.CalculateFoldChangeOverTime(); // calculate fold change if necessary
                     }
-                    if (EXPORT_DATA){
-                        model.CollectData(heparinPercentage);
+                    if (EXPORT_DATA){ // if data export is set to TRUE,
+                        model.CollectData(heparinPercentage); // then collect data
                     }
                 }
             }
-            if (EXPORT_DATA){
-                model.ExportData();
+            if (EXPORT_DATA){  // If data export is TRUE,
+                model.ExportData(); // Export all data when finished.
             }
         }
     }

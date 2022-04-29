@@ -1,6 +1,6 @@
-# Agent Based Model of Vessel Growth through Heparin Islands MAP Gel
+# 2D Hybrid Agent Based Model of Endothelial Cell Migration in MAP Hydrogel with Heparin Microislands
 
-Lauren Pruett<sup>1</sup>, Alex Taing<sup>1</sup>, Neharika Singh<sup>1</sup>, Shayn Peirce, PhD,<sup>1, Donald Griffin, PhD<sup>1,2,*</sup>
+Lauren Pruett<sup>1</sup>, Alex Taing<sup>1</sup>, Neharika Singh<sup>1</sup>, Shayn Peirce, PhD<sup>1</sup>, Donald Griffin, PhD<sup>1,2,*</sup>
 
 <sup>1</sup>Department of Biomedical Engineering<br>
 <sup>2</sup>Department of Chemical Engineering

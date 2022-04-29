@@ -1,6 +1,6 @@
 # Agent Based Model of Vessel Growth through Heparin Islands MAP Gel
 
-Lauren Pruett<sup>1</sup>, Alex Taing<sup>1</sup>, Neharika Singh<sup>1</sup>, Donald Griffin, PhD<sup>1,2,*</sup>
+Lauren Pruett<sup>1</sup>, Alex Taing<sup>1</sup>, Neharika Singh<sup>1</sup>, Shayn Peirce, PhD,<sup>1, Donald Griffin, PhD<sup>1,2,*</sup>
 
 <sup>1</sup>Department of Biomedical Engineering<br>
 <sup>2</sup>Department of Chemical Engineering
@@ -10,10 +10,10 @@ Email address: dg2gf@virginia.edu <br>
 Phone number: 434-982-6269<br>
 
 <b>Summary:</b> <br>
-This model was created to model vessel growth through Heparin Islands MAP gel, 
-testing different ratios of MAP gel to Heparin Islands MAP Gel optimize healing 
-outcomes.  This model simulates angiogenesis from a spherical culture through 
-surrounding Heparin islands MAP gel.
+A hybrid agent-based model was developed to simulate endothelial cell migration from a spheroid in a MAP scaffold with heparin microislands. 
+The goal of this model is to optimize the raio of heparin microislands in a MAP scaffold to promote angiogenesis. 
+Heparin microislands in the MAP scaffold were first described here: 
+Pruett, L. J., Jenkins, C. H., Singh, N. S., Catallo, K. J., Griffin, D. R., Heparin Microislands in Microporous Annealed Particle Scaffolds for Accelerated Diabetic Wound Healing. Adv. Funct. Mater. 2021, 31, 2104337. https://doi.org/10.1002/adfm.202104337
 
 To start using this model, complete installation and setup.
 
@@ -56,14 +56,6 @@ _Note_: If an error occurs, carefully complete steps 10 and 11 once more and try
 HAL: http://halloworld.org/index.html <br>
 Bravo RR, Baratchart E, West J, Schenck RO, Miller AK, Gallaher J, et al. (2020) Hybrid Automata Library: A flexible platform for hybrid modeling with real-time visualization. PLoS Comput Biol 16(3): e1007635. https://doi.org/10.1371/journal.pcbi.1007635 
 <br>
-<br>
-Mehdizadeh, H., Sumo, S., Bayrak, E. S., Brey, E. M. & Cinar, A. Three-dimensional modeling of angiogenesis in porous biomaterial scaffolds. Biomaterials 34, 2875–2887 (2013).
-<br>
-<br>
-Nandi, S. & Brown, A. C. Characterizing Cell Migration Within Three-dimensional In Vitro Wound Environments. JoVE (Journal of Visualized Experiments) e56099 (2017) doi:10.3791/56099.
-<br>
-<br>
-Pruett, L., Ellis, R., McDermott, M., Roosa, C. & Griffin, D. Spatially heterogeneous epidermal growth factor release from microporous annealed particle (MAP) hydrogel for improved wound closure. Journal of Materials Chemistry B (2021) doi:10.1039/D1TB00715G.
 <br>
 <br>
 This project was supported by the UVA Double Hoo grant. <br>

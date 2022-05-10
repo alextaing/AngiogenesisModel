@@ -63,7 +63,6 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
 
     int[] posneg = {1, -1}; // utility variable
     public static double MAP_RAD = grid3D.MAP_RAD; // the radius of the MAP particle
-    public static final double HEPARIN_ISLAND_PERCENTAGE = grid3D.HEPARIN_ISLAND_PERCENTAGE; // the proportion of heparin MicroIslands to MAP particle
     public static final double VESSEL_RADIUS = grid3D.VESSEL_RADIUS; // the radius of the vessel cells (head and body cells)
     public static final double VESSEL_VEGF_CONSUME = grid3D.VESSEL_VEGF_CONSUME; // The amount of VEGF a body cell consumes once it is over AGE_BEFORE_CONSUME
     public static final int  AGE_BEFORE_CONSUME = grid3D.AGE_BEFORE_CONSUME; // The age a body cell must be before consuming VEGF (to prevent interference with gradients and head cell navigation)
@@ -78,6 +77,7 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
     public final static double MED_HIGH_VEGF_THRESHOLD = grid3D.MED_HIGH_VEGF_THRESHOLD;
     public final static double HIGH_BRANCHING_PROBABILITY= grid3D.HIGH_BRANCHING_PROBABILITY; // probability of branching while VEGF is above MED_HIGH_VEGF_THRESHOLD
     public static final double SEQUENTIAL_TURN_ON = grid3D.SEQUENTIAL_TURN_ON;
+    public static double VEGF_SCALE_FACTOR = grid3D.VEGF_SCALE_FACTOR;
 
 
     ////////////////////
@@ -134,7 +134,7 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
      * Called by the grid class.  Recursively generates MAP particles with the designated ratio of Heparin microIslands.
      * Makes sure that they do not overlap and are spaced perfectly.
      */
-    public void Recursive_MAP_Generator(){
+    public void Recursive_MAP_Generator(double heparin_island_percentage){
         assert G != null;
         // recursive function, makes 12 surrounding MAP particles if the coordinates are in bounds and unoccupied
 
@@ -166,7 +166,7 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
                     agent3D new_agent;
 
                     // has possibility of becoming a heparin MicroIsland or just a normal MAP particle
-                    if(G.rng.Double() < HEPARIN_ISLAND_PERCENTAGE){
+                    if(G.rng.Double() < heparin_island_percentage){
                         new_agent = G.NewAgentPT(new_agent_x, new_agent_y, Zpt());
                         new_agent.Init(HEPARIN_ISLAND, MAP_RAD);
                         int[] zeroHood = Util.SphereHood(true, MAP_RAD);
@@ -178,7 +178,7 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
                         new_agent = G.NewAgentPT(new_agent_x, new_agent_y, Zpt());
                         new_agent.Init(MAP_PARTICLE, MAP_RAD);
                     }
-                    new_agent.Recursive_MAP_Generator(); // make MAP paricles around the one just made
+                    new_agent.Recursive_MAP_Generator(heparin_island_percentage); // make MAP paricles around the one just made
                 }
             }
         }
@@ -214,7 +214,7 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
         if (y_in_range && z_in_range && open_for_MAP){
             agent3D new_agent = G.NewAgentPT(Xpt(), new_agent_y, new_agent_z);
             new_agent.Init(MAP_PARTICLE, MAP_RAD);
-            new_agent.Recursive_MAP_Generator();
+            new_agent.Recursive_MAP_Generator(heparin_island_percentage);
         }
     }
 
@@ -426,7 +426,7 @@ public class agent3D extends SphericalAgent3D<agent3D, grid3D> {
             for (int i = 0; i < len; i++) {
                 double[] location = {Xpt()+add_VEGF[3*i], Ypt()+add_VEGF[(3*i)+1], Zpt()+add_VEGF[(3*i)+2]};
                 if (G.In(location[0], location[1], location[2])){
-                    G.VEGF.Set(location[0], location[1], location[2], 0.01);
+                    G.VEGF.Set(location[0], location[1], location[2], (1/grid3D.currentHeparinPercentage)*VEGF_SCALE_FACTOR);
                 }
             }
 

@@ -7,8 +7,14 @@ import HAL.Gui.OpenGL3DWindow;
 import HAL.Interfaces.DoubleToInt;
 import HAL.Rand;
 import HAL.Util;
+import SproutingAssay.sproutAgent;
 
-import java.util.Arrays;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.sql.Timestamp;
+import java.util.ArrayList;
 
 public class grid3D extends AgentGrid3D<agent3D> {
 
@@ -16,9 +22,15 @@ public class grid3D extends AgentGrid3D<agent3D> {
     // PARAMETERS //
     ////////////////
 
+
+    // DATA EXPORT
+    public static final boolean EXPORT_DATA = true;
+    public static final boolean EXPORT_HEAD_CELL_DATA = true;
+    public static final double HEAD_CELL_SAMPLE_HOURS = 1; // How frequently head cell distances will be collected
+
     // SCALE FACTORS
-    public static final double SCALE_FACTOR = 0.1; // mm to units
-    public static final double TIME_SCALE_FACTOR = 10; // hours to ticks (normally 60?)
+    public static final double SCALE_FACTOR = 0.1; // microns to units
+    public static final double TIME_SCALE_FACTOR = 10; // hours to ticks (normally 60?) (ticks/hr)
 
     // GRID PROPERTIES
     public static final int x = (int)(.5 * (SCALE_FACTOR)*1000); // dimension of the wound in mm
@@ -29,16 +41,17 @@ public class grid3D extends AgentGrid3D<agent3D> {
     Rand rng = new Rand();
 
     // VIEW: what agents to display
-    public static final boolean VIEW_MAP = true;
+    public static final boolean VIEW_MAP = false;
     public static final boolean VIEW_HEP_ISLANDS = true;
     public static final boolean VIEW_VESSELS = true;
 
     // MAP GEL
-    public static final double HEPARIN_ISLAND_PERCENTAGE = 0.05; // enter as a decimal between 0 and 1, heparin microislands
+    public static final double HEPARIN_ISLAND_PERCENTAGE = 0.1; // enter as a decimal between 0 and 1, heparin microislands
     public static final double MAP_DIAMETER = 80 * (SCALE_FACTOR); //(microns)
     public static final double VESSEL_DIAMETER = 16 * (SCALE_FACTOR); //(microns)
     public static final double MAP_GAP =  18 * (SCALE_FACTOR); //(microns)
-    public static final double TOTAL_VEGF_PRESENT = 1.0;
+    public static final double TOTAL_VEGF_PRESENT = 1.0; 
+    public static final double SEQUENTIAL_TURN_ON = 24 * (TIME_SCALE_FACTOR); // (hours)
 
     // VESSELS
     public static final int NUM_VESSELS_PER_SIDE = 12; // The number of head vessels to start the model per side
@@ -67,11 +80,20 @@ public class grid3D extends AgentGrid3D<agent3D> {
     public static final double MAP_GAP_CENTERS = (MAP_GAP + (2 * MAP_RAD));
     public static final double VESSEL_RADIUS = VESSEL_DIAMETER/2.0;
 
+    public static final double HEAD_CELL_SAMPLE_TICKS = (int)(HEAD_CELL_SAMPLE_HOURS*TIME_SCALE_FACTOR); // How frequently head cell distances will be collected
+
+
+    // DATA EXPORT
+    public static StringBuilder CSV = new StringBuilder();
+    public static StringBuilder Head_cell_data_over_time = new StringBuilder();
+    public static double CenterArrivalTime = -1;
+    public static double QuarterArrivalTime = -1;
+
     /////////////////
     // MAIN METHOD //
     /////////////////
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException{
 
         // INITIALIZE WINDOWS
         OpenGL3DWindow window = new OpenGL3DWindow("Angiogenesis", 900, 900, x, y, z);
@@ -82,15 +104,20 @@ public class grid3D extends AgentGrid3D<agent3D> {
         Init_MAP_Particles(woundGrid);
         Init_Vessels(woundGrid);
 
+        // INITIALIZE CSV
+        Initialize_CSV();
+
+
         // TICK ACTIONS
         for (int step = 0; step < RUNTIME; step++) {  // For each timestep
             woundGrid.StepVEGF(); // Step the gradient
-            woundGrid.StepCells(0.5); // Step all the cells
+            woundGrid.StepCells(); // Step all the cells
             woundGrid.DrawGrid(window); // Draw the updated window
             woundGrid.DrawGradientWindowed(VEGF_xz, Util::HeatMapBGR); // Draw the updated PDE grid
             woundGrid.DrawAgents(window); // draw the new updated agents
             woundGrid.VEGF.Update(); // Update the VEGF window with the newly drawn PDE grid
             window.Update();// Update the wound grid window with the newly drawn agents
+            woundGrid.HeadCellDistOverTime();
 
             woundGrid.IncTick(); // Increment the time ticks
 
@@ -100,7 +127,14 @@ public class grid3D extends AgentGrid3D<agent3D> {
                 break; // exit the time tick loop
             }
         }
-        System.out.println(Arrays.toString(vessel_info(woundGrid)));
+
+        // COLLECT DATA
+        CollectVesselData(woundGrid);
+
+        if (EXPORT_DATA){
+            ExportData();
+        }
+
         window.Close(); // close the wound grid window
         VEGF_xz.Close(); // and close the PDE window
     }
@@ -166,7 +200,7 @@ public class grid3D extends AgentGrid3D<agent3D> {
                 }
             }
             if (empty){ // BUT if it is empty, initialize a head vessel there and increment "i" which is a tally for how many vessels have been initialized
-                grid.NewAgentPT(location[0], location[1], location[2]).Init_HEAD_CELL();
+                grid.NewAgentPT(location[0], location[1], location[2]).Init_HEAD_CELL("L");
                 i++;
             }
         }
@@ -182,7 +216,7 @@ public class grid3D extends AgentGrid3D<agent3D> {
                 }
             }
             if (empty){ // BUT if it is empty, initialize a head vessel there and increment "i" which is a tally for how many vessels have been initialized
-                grid.NewAgentPT(location[0], location[1], location[2]).Init_HEAD_CELL();
+                grid.NewAgentPT(location[0], location[1], location[2]).Init_HEAD_CELL("R");
                 i++;
             }
         }
@@ -194,11 +228,10 @@ public class grid3D extends AgentGrid3D<agent3D> {
 
     /**
      * To be called on all cells inside the grid: calls StepCell on all cells
-     * @param divProb
      */
-    public void StepCells(double divProb) {
+    public void StepCells() {
         for (agent3D cell: this) { // for each of the cells in the grid
-            cell.StepCell(divProb); // call them to take action
+            cell.StepCell(); // call them to take action
         }
     }
 
@@ -281,7 +314,7 @@ public class grid3D extends AgentGrid3D<agent3D> {
     // DATA EXPORT //
     /////////////////
 
-    public static double[] vessel_info(grid3D G){
+    public static void CollectVesselData(grid3D G){
 
         // check their quadrants
         int outerQuadrant = 0; // counter for agents in the outer half of the wound (0 to x/2 since x is wound center)
@@ -304,10 +337,71 @@ public class grid3D extends AgentGrid3D<agent3D> {
 
         double ratioInner = innerQuadrant/(totalAgents*1.0);
         double ratioOuter = outerQuadrant/(totalAgents*1.0);
-
         double totalVesselLength = ((totalAgents*VESSEL_RADIUS) + (numHeadCells*VESSEL_RADIUS))/SCALE_FACTOR;
 
-        return new double[]{ratioOuter, ratioInner, totalVesselLength};
+        CSV.append("\n" + HEPARIN_ISLAND_PERCENTAGE + ", ").append(totalVesselLength).append(", ").append(ratioInner).append(", ").append(ratioOuter).append(", ").append(QuarterArrivalTime).append(", ").append(CenterArrivalTime);
+
+        // Reset Arrival Times
+        QuarterArrivalTime = -1;
+        CenterArrivalTime = -1;
+
     }
 
+
+    public static void Initialize_CSV(){
+        CSV.append("Heparin Percentage (%), Total BVL (microns), Inner Quadrant BV percentage, Outer Quadrant BV percentage, Quarter Arrival Time (h), Center Arrival Time (h)");
+        Head_cell_data_over_time.append("Time (h), Head Cell Distances from wound edge (microns)");
+    }
+
+
+    public static void ExportData() throws IOException {
+        Path fileName= Path.of("VesselModel3D\\Model3D_Data");
+        File Model3D_Datafile = new File(String.valueOf(fileName));
+        if (!Model3D_Datafile.exists()) {
+            if (!Model3D_Datafile.mkdir()) {
+                throw new IOException("Model3D_Data folder not made");
+            }
+        }
+
+        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+
+        String timestamp_string = ((timestamp.toString().replace(" ","_").replace(".", "-").replace(":", "-")).substring(0, 10) +" " + (HEPARIN_ISLAND_PERCENTAGE*100) + "%");
+        Path fileName3D= Path.of("VesselModel3D\\Model3D_Data\\" + timestamp_string + " 3DModel.csv");
+        int i = 0;
+        while (Files.exists(fileName3D)){
+            i++;
+            fileName3D= Path.of("VesselModel3D\\Model3D_Data\\" + timestamp_string + " (" + i + ")" + "3DModel.csv");
+        }
+        Files.writeString(fileName3D, CSV);
+
+        if (EXPORT_HEAD_CELL_DATA){
+            Path fileNameHead= Path.of("VesselModel3D\\Model3D_Data\\" + timestamp_string + " 3DModel_HeadCellTimeData.csv");
+            if (i != 0) {
+                fileNameHead = Path.of("VesselModel3D\\Model3D_Data\\" + timestamp_string + " (" + i + ")" + "3DModel_HeadCellTimeData.csv");
+            }
+            Files.writeString(fileNameHead, Head_cell_data_over_time);
+        }
+    }
+
+    public void ClearHeadCellTimeData() {
+        Head_cell_data_over_time.setLength(0);
+    }
+
+    public void HeadCellDistOverTime(){
+        if (EXPORT_HEAD_CELL_DATA){
+            if (GetTick()%HEAD_CELL_SAMPLE_TICKS == 0){
+                Head_cell_data_over_time.append("\n").append(GetTick()/TIME_SCALE_FACTOR);
+
+                for (agent3D agent3D : this.IterAgentsRect(0, 0, 0, x, y, z)) {
+                    if (agent3D.type == HEAD_CELL){
+                        if (agent3D.side.equals("L")){
+                            Head_cell_data_over_time.append(",").append(agent3D.Zpt()/(SCALE_FACTOR));
+                        } else if (agent3D.side.equals("R")) {
+                            Head_cell_data_over_time.append(",").append((z-agent3D.Zpt())/(SCALE_FACTOR));
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

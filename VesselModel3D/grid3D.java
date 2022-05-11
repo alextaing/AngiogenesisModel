@@ -20,25 +20,26 @@ public class grid3D extends AgentGrid3D<agent3D> {
     // PARAMETERS //
     ////////////////
 
-
-    // RUN SETTINGS
-    public static final boolean EXPORT_DATA = true;
-        public static final boolean EXPORT_HEAD_CELL_DATA = true;
-    public static final double HEAD_CELL_SAMPLE_HOURS = 1; // How frequently head cell distances will be collected
-    public static final double[] HEPARIN_ISLAND_PERCENTAGES = {0.1}; // enter as a decimal between 0 and 1, heparin microislands
-    public static final double TRIALS = 1;
-
-
     // SCALE FACTORS
     public static final double SCALE_FACTOR = 0.1; // microns to units
     public static final double TIME_SCALE_FACTOR = 10; // hours to ticks (normally 60?) (ticks/hr)
     public static final double VEGF_SCALE_FACTOR = .001;
 
+    // RUN SETTINGS
+    public static final boolean EXPORT_DATA = true;
+        public static final boolean EXPORT_HEAD_CELL_DATA = true; //
+    public static final double HEAD_CELL_SAMPLE_HOURS = 1; // How frequently head cell distances will be collected
+    public static final double[] HEPARIN_ISLAND_PERCENTAGES = {0.1}; // enter as a decimal between 0 and 1, heparin microislands
+    public static final double TRIALS = 1;
+    public final static int RUNTIME = (int)(168 *TIME_SCALE_FACTOR); // how long will the simulation run? (hours)
+
+
+
+
     // GRID PROPERTIES
-    public static final int x = (int)(.5 * (SCALE_FACTOR)*1000); // dimension of the wound in mm
-    public static final int y = (int)(.5 * (SCALE_FACTOR)*1000); // dimension of the wound in mm
-    public static final int z = (int)(.5 * (SCALE_FACTOR)*1000); // dimension of the wound in mm
-    public final static int RUNTIME = (int)(5 *TIME_SCALE_FACTOR); // how long will the simulation run?
+    public static final int x = (int)(1 * (SCALE_FACTOR)*1000); // dimension of the wound in mm
+    public static final int y = (int)(1 * (SCALE_FACTOR)*1000); // dimension of the wound in mm
+    public static final int z = (int)(1 * (SCALE_FACTOR)*1000); // dimension of the wound in mm
     public static final double DIFFUSION_COEFFICIENT = 0.1; // diffusion coefficient, ADI
     Rand rng = new Rand();
 
@@ -56,12 +57,12 @@ public class grid3D extends AgentGrid3D<agent3D> {
     // VESSELS
     public static final int NUM_VESSELS_PER_SIDE = 12; // The number of head vessels to start the model per side
     public static final double VESSEL_VEGF_CONSUME = 0.0001; // the amount of VEGF consumed by eligible cells (body cells older than AGE_BEFORE_CONSUME
-    public static final int  AGE_BEFORE_CONSUME = 25; // age (in ticks) before a body cell can start consuming VEGF: to keep consumption from interacting with head cell gradient calculation
-    public static final double MIGRATION_RATE = 3 * SCALE_FACTOR/TIME_SCALE_FACTOR; // microns per hour
+    public static final int AGE_BEFORE_CONSUME = 25; // age (in ticks) before a body cell can start consuming VEGF: to keep consumption from interacting with head cell gradient calculation
+    public static final double MIGRATION_RATE = 30 * SCALE_FACTOR/TIME_SCALE_FACTOR; // microns per hour
     public static final double VEGF_SENSITIVITY_THRESHOLD = 0.001; // Threshold for VEGF sensitivity
     public static final double MAX_ELONGATION_LENGTH = 40 * (SCALE_FACTOR); // in microns
     public static final double MAX_PERSISTENCY_TIME = 3 * (TIME_SCALE_FACTOR);
-    public static final double BRANCH_DELAY = 4 * (TIME_SCALE_FACTOR); // The minimum amount of ticks between ticks (model specific, included in Mehdizadeh et al.)
+    public static final double BRANCH_DELAY = 4 * (TIME_SCALE_FACTOR); // The minimum amount hours between branching (model specific, included in Mehdizadeh et al.)
     // BRANCHING PROBABILITY AND THRESHOLDS_ PROBABILITIES NEED PARAMETERIZED BUT COULD STAY FIXED
     public final static double LOW_BRANCHING_PROBABILITY= 0.4; // probability of branching while VEGF is under LOW_MED_VEGF_THRESHOLD
     public final static double LOW_MED_VEGF_THRESHOLD = 0.05;
@@ -349,43 +350,11 @@ public class grid3D extends AgentGrid3D<agent3D> {
     // DATA EXPORT //
     /////////////////
 
-    public static void CollectVesselData(grid3D G, double heparinIslandPercentage, int trial){
-
-        // check their quadrants
-        int outerQuadrant = 0; // counter for agents in the outer half of the wound (0 to x/2 since x is wound center)
-        int innerQuadrant = 0; // counter for agents in the inner half of the wound (x/2 to x)
-        int numHeadCells = 0;
-
-        for (agent3D agent3D : G.IterAgentsRect(0, 0, 0, x, y, z)) {
-            if (agent3D.type == HEAD_CELL){
-                numHeadCells ++;
-            }
-            if ((agent3D.type == HEAD_CELL) || (agent3D.type == BODY_CELL)){
-                if (agent3D.Zpt() < 3*z/4.0 && agent3D.Zpt() > z/4.0) {
-                    innerQuadrant ++;
-                } else{
-                    outerQuadrant++;
-                }
-            }
-        }
-        int totalAgents = outerQuadrant + innerQuadrant;
-
-        double ratioInner = innerQuadrant/(totalAgents*1.0);
-        double ratioOuter = outerQuadrant/(totalAgents*1.0);
-        double totalVesselLength = ((totalAgents*VESSEL_RADIUS) + (numHeadCells*VESSEL_RADIUS))/SCALE_FACTOR;
-
-        CSV.append("\nTrial ").append(trial).append(",").append(heparinIslandPercentage).append(", ").append(totalVesselLength).append(", ").append(ratioInner).append(", ").append(ratioOuter).append(", ").append(QuarterArrivalTime).append(", ").append(CenterArrivalTime);
-
-        // Reset Arrival Times
-        QuarterArrivalTime = -1;
-        CenterArrivalTime = -1;
-
-    }
-
 
     public static void Initialize_CSV(){
         CSV.append("Trial Number, Heparin Percentage (%), Total BVL (microns), Inner Quadrant BV percentage, Outer Quadrant BV percentage, Quarter Arrival Time (h), Center Arrival Time (h)");
     }
+
 
     public static void Initialize_Head_CSV(int trial, double heparinIslandPercentage) {
         if (HeadCellCSV.length() == 0){
@@ -394,6 +363,7 @@ public class grid3D extends AgentGrid3D<agent3D> {
             HeadCellCSV.append("\n\n\nTRIAL ").append(trial).append(", Heparin Island Percentage: ").append(Math.round(heparinIslandPercentage * 100)).append("\nTime (h), Head Cell Distances from wound edge (microns)");
         }
     }
+
 
     public static String MakeFolder() throws IOException {
         Path folderName= Path.of("VesselModel3D\\Model3D_Data");
@@ -444,15 +414,40 @@ public class grid3D extends AgentGrid3D<agent3D> {
         return batchString;
     }
 
-    public static void ExportData(String folderName) throws IOException {
-        Path fileName3D= Path.of(folderName + "\\OverallBatchData(B"+BatchNum+"_"+date+"_" + percentages +").csv");
-        Files.writeString(fileName3D, CSV);
+
+    public static void CollectVesselData(grid3D G, double heparinIslandPercentage, int trial){
+
+        // check their quadrants
+        int outerQuadrant = 0; // counter for agents in the outer half of the wound (0 to x/2 since x is wound center)
+        int innerQuadrant = 0; // counter for agents in the inner half of the wound (x/2 to x)
+        int numHeadCells = 0;
+
+        for (agent3D agent3D : G.IterAgentsRect(0, 0, 0, x, y, z)) {
+            if (agent3D.type == HEAD_CELL){
+                numHeadCells ++;
+            }
+            if ((agent3D.type == HEAD_CELL) || (agent3D.type == BODY_CELL)){
+                if (agent3D.Zpt() < 3*z/4.0 && agent3D.Zpt() > z/4.0) {
+                    innerQuadrant ++;
+                } else{
+                    outerQuadrant++;
+                }
+            }
+        }
+        int totalAgents = outerQuadrant + innerQuadrant;
+
+        double ratioInner = innerQuadrant/(totalAgents*1.0);
+        double ratioOuter = outerQuadrant/(totalAgents*1.0);
+        double totalVesselLength = ((totalAgents*VESSEL_RADIUS) + (numHeadCells*VESSEL_RADIUS))/SCALE_FACTOR;
+
+        CSV.append("\nTrial ").append(trial).append(",").append(heparinIslandPercentage).append(", ").append(totalVesselLength).append(", ").append(ratioInner).append(", ").append(ratioOuter).append(", ").append(QuarterArrivalTime).append(", ").append(CenterArrivalTime);
+
+        // Reset Arrival Times
+        QuarterArrivalTime = -1;
+        CenterArrivalTime = -1;
+
     }
 
-    public static void ExportHeadCellTimeData (String folderName) throws IOException {
-        Path fileNameHead= Path.of(folderName + "\\HeadCellTimeData(B"+BatchNum+"_"+date+"_" + percentages +").csv");
-        Files.writeString(fileNameHead, HeadCellCSV);
-    }
 
     public void HeadCellDistOverTime(){
         if (EXPORT_HEAD_CELL_DATA){
@@ -470,5 +465,17 @@ public class grid3D extends AgentGrid3D<agent3D> {
                 }
             }
         }
+    }
+
+
+    public static void ExportData(String folderName) throws IOException {
+        Path fileName3D= Path.of(folderName + "\\OverallBatchData(B"+BatchNum+"_"+date+"_" + percentages +").csv");
+        Files.writeString(fileName3D, CSV);
+    }
+
+
+    public static void ExportHeadCellTimeData (String folderName) throws IOException {
+        Path fileNameHead= Path.of(folderName + "\\HeadCellTimeData(B"+BatchNum+"_"+date+"_" + percentages +").csv");
+        Files.writeString(fileNameHead, HeadCellCSV);
     }
 }
